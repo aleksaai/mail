@@ -18,6 +18,11 @@
 - Bereiche: Aleksa, info@, April, **Archiv DestinyMedia** (`archiv.destinymedia@spalevic-partner.com`, nur lesen). Consulting (`aleksa@spalevic-consulting.de`) folgt, sobald das freigegebene Postfach angelegt werden kann (hing an Alias-Verzug, siehe claude-team STATUS).
 - **Hintergrund + Glas** (`src/lib/background.tsx`, `src/components/BackdropPicker.tsx`, Regeln `[data-glass]` in `index.css`): 6 Verläufe + eigenes Bild (auf 2400 px verkleinert, localStorage je Gerät); Leiste/Panel `rgba(255,255,255,.62)` + `blur(28px)`, Mail-Inhalt auf weißer `.mail-card`. Von Aleksa abgenommen („es klappt“).
 
+### Nachtrag 2026-09-27 spät: Kalender (Phase 2) gebaut
+- `src/lib/calendar.ts` (calendarView mit Folgeseiten, Anlegen/Ändern/Löschen, accept/tentativelyAccept/decline; Wandzeit Europe/Berlin, Zone beim Schreiben ausdrücklich), `src/pages/CalendarPage.tsx` (Tag/Woche/Monat, Ansicht je Gerät gemerkt, Überlappungs-Spalten, Jetzt-Linie, Klick in freie Zeit = neuer Termin um diese halbe Stunde, Doppelklick in Ganztags-/Monatszelle = ganztägig, Tasten t/j/k/←/→/d/w/m/n), `src/components/calendar/EventDialog.tsx` (Ansehen, Bearbeiten nur als Organisator, Löschen mit Hinweis auf Absage an Teilnehmer, Antworten auf Einladungen).
+- Farben nach Antwort: zugesagt/eigen Lila, Vorbehalt gestreift, offen gestrichelter Rand, abgesagt grau durchgestrichen. Build grün; **echter Login-Test durch Aleksa steht aus.**
+- Noch nicht: Einladungen direkt in der Mail beantworten, mehrere Kalender auswählen, Serien bearbeiten (Änderung trifft nur das einzelne Vorkommen).
+
 ### Nächster Schritt
 1. Aleksa: Entra-App „Aleksa Mail“ (SPEC §6) → `.env` mit `VITE_MS_CLIENT_ID` (+ Tenant, erlaubter Nutzer, siehe `.env.example`); dieselben drei Variablen in Netlify.
 2. Cloud Shell: `Set-OrganizationConfig -SendFromAliasesEnabled $true` und `Add-RecipientPermission info@aleksa.ai -AccessRights SendAs -Trustee Aleksa@spalevic-partner.com`.

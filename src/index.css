@@ -1,0 +1,246 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Local variable fonts avoid a blocking third-party stylesheet on restricted networks. */
+@font-face{font-family:Figtree;font-style:normal;font-weight:300 900;font-display:swap;src:url('/fonts/figtree-normal.ttf') format('truetype')}
+@font-face{font-family:Figtree;font-style:italic;font-weight:300 900;font-display:swap;src:url('/fonts/figtree-italic.ttf') format('truetype')}
+
+/* awork-style design system — Quelle: DESIGN.md (live extrahiert aus awork am 2026-08-27).
+   Alle shadcn-Variablen sind auf die awork-Palette gemappt, damit bestehende
+   Komponenten (Dialogs, Buttons, Cards) automatisch den neuen Look bekommen. */
+
+@layer base {
+  :root {
+    /* Flächen: Content ist weiß, der App-Canvas (sky) wird in der AppShell gesetzt */
+    --background: 0 0% 100%;
+    --foreground: 214 24% 11%;          /* ink #161c24 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 214 24% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 214 24% 11%;
+
+    /* Primary = Aleksa AI Brand-Lila #8b79f0 */
+    --primary: 249 80% 71%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 208 100% 98%;           /* ice #f2f9ff */
+    --secondary-foreground: 216 67% 18%; /* asphalt #0f284d */
+
+    --muted: 208 100% 98%;               /* ice */
+    --muted-foreground: 214 15% 48%;     /* body #68788d */
+
+    --accent: 210 100% 93%;              /* fog #dbedff */
+    --accent-foreground: 216 67% 18%;
+
+    --destructive: 333 100% 55%;         /* awork red #ff1a82 */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 218 19% 88%;               /* line #dce0e7 */
+    --input: 218 19% 88%;
+    --ring: 249 80% 71%;
+
+    --radius: 0.75rem;                   /* 12px cards */
+
+    /* awork-Schatten: ultra-subtil, Basis asphalt */
+    --shadow-glass: 0 2px 6px rgba(15, 40, 77, 0.04), 0 1px 2px rgba(15, 40, 77, 0.03);
+    --shadow-liquid: 0 8px 24px rgba(15, 40, 77, 0.10);
+    --shadow-elegant: 0 4px 16px rgba(15, 40, 77, 0.05);
+    --shadow-float: 0 8px 24px rgba(15, 40, 77, 0.10);
+
+    --glass-bg: rgba(255, 255, 255, 0.9);
+    --glass-border: rgba(220, 224, 231, 0.8);
+
+    /* Status colors (Projekt + Task) */
+    --status-not-started: 217 33% 50%;   /* steel */
+    --status-progress: 42 100% 55%;      /* yellow #ffba1a */
+    --status-done: 153 82% 47%;          /* green #16d982 */
+
+    /* Sidebar (floating white panel) */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 214 15% 48%;
+    --sidebar-primary: 249 80% 71%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 252 83% 98%;      /* indigo-50 */
+    --sidebar-accent-foreground: 249 80% 71%;
+    --sidebar-border: 218 19% 88%;
+    --sidebar-ring: 254 90% 59%;
+  }
+
+  /* Dark-Mode bewusst identisch zu Light — das awork-Redesign committet auf den
+     hellen Look. Eigenes Dark-Theme ist ein V2-Thema. */
+  .dark {
+    --background: 0 0% 100%;
+    --foreground: 214 24% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 214 24% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 214 24% 11%;
+    --primary: 249 80% 71%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 208 100% 98%;
+    --secondary-foreground: 216 67% 18%;
+    --muted: 208 100% 98%;
+    --muted-foreground: 214 15% 48%;
+    --accent: 210 100% 93%;
+    --accent-foreground: 216 67% 18%;
+    --destructive: 333 100% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 218 19% 88%;
+    --input: 218 19% 88%;
+    --ring: 249 80% 71%;
+    --shadow-glass: 0 2px 6px rgba(15, 40, 77, 0.04), 0 1px 2px rgba(15, 40, 77, 0.03);
+    --shadow-liquid: 0 8px 24px rgba(15, 40, 77, 0.10);
+    --shadow-elegant: 0 4px 16px rgba(15, 40, 77, 0.05);
+    --shadow-float: 0 8px 24px rgba(15, 40, 77, 0.10);
+    --glass-bg: rgba(255, 255, 255, 0.9);
+    --glass-border: rgba(220, 224, 231, 0.8);
+    --status-not-started: 217 33% 50%;
+    --status-progress: 42 100% 55%;
+    --status-done: 153 82% 47%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 214 15% 48%;
+    --sidebar-primary: 249 80% 71%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 252 83% 98%;
+    --sidebar-accent-foreground: 249 80% 71%;
+    --sidebar-border: 218 19% 88%;
+    --sidebar-ring: 254 90% 59%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-sky text-body font-sans antialiased;
+    font-size: 14px;
+  }
+
+  h1, h2, h3, h4 {
+    @apply text-ink;
+  }
+}
+
+@layer components {
+  /* Tiptap Doc-Editor (Notion-Style) */
+  .doc-editor h1 { @apply text-2xl font-bold text-ink mt-5 mb-2; }
+  .doc-editor h2 { @apply text-xl font-bold text-ink mt-4 mb-1.5; }
+  .doc-editor h3 { @apply text-base font-bold text-ink mt-3 mb-1; }
+  .doc-editor p { @apply my-1.5; }
+  .doc-editor ul { @apply list-disc ml-5 my-1.5; }
+  .doc-editor ol { @apply list-decimal ml-5 my-1.5; }
+  .doc-editor li { @apply my-0.5; }
+  .doc-editor blockquote { @apply border-l-2 border-indigo2-300 pl-3 my-2 text-body italic; }
+  .doc-editor pre { @apply bg-ice rounded-[10px] p-3 my-2 text-[13px] font-mono text-asphalt overflow-x-auto; }
+  .doc-editor code { @apply bg-ice rounded px-1 py-0.5 text-[13px] font-mono; }
+  .doc-editor pre code { @apply bg-transparent p-0; }
+  .doc-editor hr { @apply border-line my-4; }
+  .doc-editor ul[data-type="taskList"] { @apply list-none ml-0; }
+  .doc-editor ul[data-type="taskList"] li { @apply flex items-start gap-2; }
+  .doc-editor ul[data-type="taskList"] li > label { @apply mt-1 shrink-0; }
+  .doc-editor ul[data-type="taskList"] li > label input { @apply accent-[#8b79f0] w-4 h-4 rounded; }
+  .doc-editor ul[data-type="taskList"] li[data-checked="true"] > div { @apply line-through text-light-steel; }
+  .doc-editor p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    @apply text-light-steel float-left h-0 pointer-events-none;
+  }
+}
+
+@layer utilities {
+  /* Schmale awork-Scrollbars */
+  .aw-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .aw-scroll::-webkit-scrollbar-thumb {
+    background: #c8dcf4;
+    border-radius: 999px;
+  }
+  .aw-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Mobile foundations — 20.09.2026
+
+   Vier Dinge, die auf einem Telefon sonst durchgehend schiefgehen. Sie stehen
+   hier zentral, weil sie jede Ansicht betreffen und nicht in 134 Komponenten
+   einzeln nachgezogen werden sollen.
+   --------------------------------------------------------------------------- */
+@layer base {
+  /* 2. Auf Touchgeräten gibt es kein Hover. Steuerelemente, die nur bei Hover
+     eingeblendet werden — Projektnamen bearbeiten, Logo tauschen, Dokument
+     löschen, Aufgabe entfernen — sind dort schlicht nicht erreichbar. Sie
+     bleiben deshalb sichtbar. Ausgenommen sind reine Tooltips, die per
+     `pointer-events-none` markiert sind: die sollen verborgen bleiben. */
+  @media (hover: none) {
+    [class~="opacity-0"][class*="group-hover:opacity-100"]:not([class~="pointer-events-none"]) {
+      opacity: 1;
+    }
+  }
+
+  /* 3. Der doppelte Tipp-Zoom von iOS verzögert jeden Klick um ~300ms und lässt
+     die App träge wirken. Das graue Blitzen beim Antippen gehört ebenfalls nicht
+     zum Design. */
+  button, a, [role="button"], summary, label {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* 4. Ein Scrollcontainer am Ende gibt den Bildlauf sonst an die Seite weiter:
+     die ganze App wackelt, oder der Browser lädt neu. */
+  .aw-scroll {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@layer utilities {
+  /* iOS zoomt beim Fokus in ein Eingabefeld, dessen Schrift kleiner als 16px
+     ist — die Seite skaliert, das Layout verrutscht und bleibt verschoben.
+     Eingabefelder tragen unterhalb von md deshalb echte 16px; ab md gilt wieder
+     die Designgröße.
+
+     Zwei Dinge mussten dafür stimmen, und die erste Fassung hatte beide falsch:
+     Die Regel gehört in `utilities`, weil eine Klasse wie `text-sm` dort liegt
+     und gegen alles aus `base` gewinnt. Und sie muss mindestens so spezifisch
+     sein wie diese Klasse — ein blosses `textarea` (0,0,1) verliert gegen
+     `.text-sm` (0,1,0), auch in derselben Ebene. Das `:not([hidden])` hebt die
+     Spezifität und ändert nichts: ein verstecktes Feld wird ohnehin nicht
+     angezeigt. Ohne diese beiden Korrekturen blieb das Schreibfeld des Chats
+     bei 14px, und iOS zoomte weiter. */
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+    textarea:not([hidden]),
+    select:not([hidden]),
+    [contenteditable]:not([contenteditable="false"]) {
+      font-size: 16px;
+    }
+  }
+
+  /* Die schwebende Befehlsleiste liegt über dem Inhalt. Ohne Freiraum am Ende
+     liegt die letzte Zeile jeder Liste darunter und ist nicht mehr antippbar. */
+  .pb-command-bar {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  }
+  @media (min-width: 768px) {
+    .pb-command-bar {
+      padding-bottom: calc(6rem + env(safe-area-inset-bottom));
+    }
+  }
+
+  /* Volle Höhe, die dem sichtbaren Fenster folgt — nicht der Layoutgröße.
+     Wird von der mobilen Chatfläche gesetzt, sobald die Tastatur aufgeht. */
+  .h-visual-viewport {
+    height: var(--visual-viewport-height, 100dvh);
+  }
+
+  .pt-safe { padding-top: env(safe-area-inset-top); }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+}

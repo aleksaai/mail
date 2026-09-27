@@ -26,7 +26,7 @@ Domains `destinymedia.de` und `pengoro.com` müssen erst in den Mandanten (eigen
 ## 4. Umfang
 
 ### Mail
-- **Ein Posteingang für alles**, filterbar nach Postfach/Adresse; Unterhaltungen gruppiert (`conversationId`).
+- **Jedes Postfach getrennt** (eigener Bereich mit Ordnern); Unterhaltungen gruppiert (`conversationId`) — Gruppierung noch offen.
 - Lesen (HTML sicher gerendert in Sandbox-iframe, externe Bilder erst auf Klick), Anhänge ansehen/laden.
 - Schreiben, Antworten, Allen antworten, Weiterleiten; **Absender-Auswahl** (Adresse aus §3); Entwürfe (auch Aprils Entwürfe in info@).
 - Archivieren, Löschen (Papierkorb), Verschieben in Ordner, Gelesen/Ungelesen, Markieren, Später erinnern (Snooze über Ordner + Termin).
@@ -72,8 +72,8 @@ Kontakte-Verwaltung, Regeln/Filter, Signaturen-Editor (feste Signatur je Adresse
 | 3 | April-Seitenleiste + Freigaben | April direkt an der Mail |
 | 4 | Webhooks + Push aufs iPhone | Neue Mail sofort, auch zu |
 
-## 8. Offene Fragen an Aleksa
+## 8. Entscheidungen (Aleksa 27.09.2026)
 
-1. Domain `mail.aleksa.ai` ok?
-2. Design-Richtung: hell wie das PM-Tool mit Aleksa-Lila `#8b79f0`, oder eigener Look (z.B. ruhiger, Superhuman-artig, dunkel)?
-3. Soll `info@` für dich im selben Posteingang laufen oder als getrennter Bereich?
+1. Domain `mail.aleksa.ai` — Subdomain angelegt, Netlify-Verbindung macht Aleksa.
+2. Design **genau wie das PM-Tool** (awork-Palette, Figtree, Lila `#8b79f0`, schwebende weiße Leiste auf hellblauem Canvas) — Tokens, `index.css`, `tailwind.config.ts` und shadcn-Komponenten 1:1 aus `projectmanagement` übernommen.
+3. **Alle Postfächer getrennt:** jedes Postfach ist ein eigener Bereich in der Seitenleiste mit eigenen Ordnern, kein gemeinsamer Posteingang (§4 „Ein Posteingang für alles“ damit überholt).

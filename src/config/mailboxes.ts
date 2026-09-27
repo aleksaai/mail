@@ -42,7 +42,7 @@ export const MAILBOXES: Mailbox[] = [
     address: 'archiv.destinymedia@spalevic-partner.com',
     path: 'users/archiv.destinymedia@spalevic-partner.com',
     from: [],
-    hint: 'Archiv von aleksa@destinymedia.de (Domain abgelaufen) — nur lesen, fuer die Liquidation.',
+    hint: 'Archiv von aleksa@destinymedia.de (Domain abgelaufen) — nur lesen, für die Liquidation.',
   },
 ]
 

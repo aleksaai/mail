@@ -13,6 +13,11 @@
   - Kalender: nur Platzhalter (`src/pages/CalendarPage.tsx`).
 - Lokal starten: `npm run dev` (Port 5173 fest — muss zur Redirect-URI passen); in claude-team als Preview `aleksa-mail`.
 
+### Nachtrag 2026-09-27 abends
+- Live auf `mail.aleksa.ai` (Netlify, Env-Variablen gesetzt, Entra-Redirect `https://mail.aleksa.ai`), Login von Aleksa bestätigt.
+- Bereiche: Aleksa, info@, April, **Archiv DestinyMedia** (`archiv.destinymedia@spalevic-partner.com`, nur lesen). Consulting (`aleksa@spalevic-consulting.de`) folgt, sobald das freigegebene Postfach angelegt werden kann (hing an Alias-Verzug, siehe claude-team STATUS).
+- **Hintergrund + Glas** (`src/lib/background.tsx`, `src/components/BackdropPicker.tsx`, Regeln `[data-glass]` in `index.css`): 6 Verläufe + eigenes Bild (auf 2400 px verkleinert, localStorage je Gerät); Leiste/Panel `rgba(255,255,255,.62)` + `blur(28px)`, Mail-Inhalt auf weißer `.mail-card`. Von Aleksa abgenommen („es klappt“).
+
 ### Nächster Schritt
 1. Aleksa: Entra-App „Aleksa Mail“ (SPEC §6) → `.env` mit `VITE_MS_CLIENT_ID` (+ Tenant, erlaubter Nutzer, siehe `.env.example`); dieselben drei Variablen in Netlify.
 2. Cloud Shell: `Set-OrganizationConfig -SendFromAliasesEnabled $true` und `Add-RecipientPermission info@aleksa.ai -AccessRights SendAs -Trustee Aleksa@spalevic-partner.com`.

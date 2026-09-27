@@ -1,4 +1,4 @@
-# aleksa-mail — eigene Mail- und Kalender-Oberfläche auf Microsoft 365
+# mail — eigene Mail- und Kalender-Oberfläche auf Microsoft 365
 
 Nur für Aleksa. Microsoft 365 ist der Unterbau (Mandant SPALEVIC & PARTNER HOLDING), diese App ersetzt die Outlook-Oberfläche. Master-Index aller Projekte: `claude-team/ai-team/status/PROJECTS.md`.
 

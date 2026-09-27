@@ -60,7 +60,7 @@ Kontakte-Verwaltung, Regeln/Filter, Signaturen-Editor (feste Signatur je Adresse
 1. Entra: App „Aleksa Mail“ registrieren (SPA, Redirect `https://mail.aleksa.ai` + `http://localhost:5173`), delegierte Rechte aus §5 eintragen, beim ersten Login selbst zustimmen.
 2. Cloud Shell: `Set-OrganizationConfig -SendFromAliasesEnabled $true` (Senden als Alias) und `Add-RecipientPermission info@aleksa.ai -AccessRights SendAs -Trustee Aleksa@spalevic-partner.com`.
 3. IONOS: CNAME `mail` → Netlify.
-4. GitHub: Repo `aleksaai/aleksa-mail` (privat) anlegen.
+4. ✅ GitHub-Repo `aleksaai/mail` (angelegt 27.09.).
 
 ## 7. Phasen
 

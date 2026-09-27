@@ -4,6 +4,8 @@ import { useMsal } from '@azure/msal-react'
 import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'motion/react'
 import { Archive, CalendarDays, ChevronDown, FileText, Inbox, LogOut, Menu, Send, ShieldAlert, Trash2 } from 'lucide-react'
+import { useBackdrop } from '@/lib/background'
+import { BackdropPicker } from './BackdropPicker'
 import { FOLDERS, MAILBOXES, type Mailbox } from '@/config/mailboxes'
 import { folderInfo } from '@/lib/graph'
 import logo from '@/assets/aleksa-brand-logo.png'
@@ -50,7 +52,7 @@ function MailboxSection({ mb }: { mb: Mailbox }) {
 function Sidebar({ drawer = false }: { drawer?: boolean }) {
   const { instance, accounts } = useMsal()
   return (
-    <aside className={`relative z-20 flex w-[232px] shrink-0 flex-col overflow-hidden bg-white ${drawer ? 'h-full pt-safe pb-safe' : 'm-2 mr-0 rounded-2xl border border-white shadow-panel'}`}>
+    <aside className={`glass-surface relative z-20 flex w-[232px] shrink-0 flex-col overflow-hidden bg-white ${drawer ? 'h-full pt-safe pb-safe' : 'm-2 mr-0 rounded-2xl border border-white shadow-panel'}`}>
       <div className="flex items-center h-14 px-3 gap-2">
         <img src={logo} alt="" className="w-7 h-7 object-contain shrink-0" />
         <span className="font-bold text-[15px] text-ink tracking-tight">Aleksa Mail</span>
@@ -68,6 +70,7 @@ function Sidebar({ drawer = false }: { drawer?: boolean }) {
             <p className="truncate text-sm font-medium text-ink">{accounts[0]?.name}</p>
             <p className="truncate text-[11px] text-steel">{accounts[0]?.username}</p>
           </div>
+          <BackdropPicker />
           <button onClick={() => instance.logoutRedirect()} title="Abmelden" className="p-1.5 rounded-md text-steel hover:bg-ice hover:text-asphalt">
             <LogOut className="w-4 h-4" />
           </button>
@@ -81,8 +84,9 @@ function Sidebar({ drawer = false }: { drawer?: boolean }) {
 export function Shell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const location = useLocation()
+  const { css, glass } = useBackdrop()
   return (
-    <div className="h-dvh w-full flex bg-sky overflow-hidden">
+    <div className="h-dvh w-full flex bg-sky overflow-hidden" data-glass={glass ? '' : undefined} style={css ? { background: css } : undefined}>
       <div className="hidden md:flex shrink-0"><Sidebar /></div>
       <AnimatePresence>
         {mobileOpen && (
@@ -94,7 +98,7 @@ export function Shell({ children }: { children: ReactNode }) {
           </>
         )}
       </AnimatePresence>
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-white sm:m-2 sm:rounded-2xl sm:shadow-panel sm:border sm:border-white">
+      <div className="glass-surface flex-1 flex flex-col min-w-0 overflow-hidden bg-white sm:m-2 sm:rounded-2xl sm:shadow-panel sm:border sm:border-white">
         <button onClick={() => setMobileOpen(true)} className="md:hidden absolute left-2 top-2 z-30 inline-flex h-10 w-10 items-center justify-center rounded-lg text-steel hover:bg-ice" aria-label="Menü">
           <Menu className="w-5 h-5" />
         </button>

@@ -6,6 +6,7 @@ import { MsalProvider } from '@azure/msal-react'
 import { EventType, type AuthenticationResult } from '@azure/msal-browser'
 import { msal } from './lib/auth'
 import App from './App'
+import { BackdropProvider } from './lib/background'
 import './index.css'
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 20_000, refetchOnWindowFocus: true, retry: 1 } } })
@@ -22,7 +23,9 @@ msal.initialize().then(async () => {
       <MsalProvider instance={msal}>
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
-            <App />
+            <BackdropProvider>
+              <App />
+            </BackdropProvider>
           </BrowserRouter>
         </QueryClientProvider>
       </MsalProvider>

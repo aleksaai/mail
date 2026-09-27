@@ -203,7 +203,9 @@ function Reader({ mailboxId, folder, id, onAct, onCompose, onBack }: {
           )}
         </div>
         <div className="px-6 pb-8">
+          <div className="mail-card">
           <HtmlFrame html={html} inline={inline.data ?? {}} allowRemote={remote} />
+          </div>
         </div>
       </div>
     </div>

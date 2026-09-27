@@ -244,3 +244,19 @@
   .pt-safe { padding-top: env(safe-area-inset-top); }
   .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 }
+
+/* Glas-Modus (Hintergrund gewaehlt): Leiste und Panel werden matt-transparent,
+   innere Flaechen durchsichtig. Mail-Inhalt bleibt auf weisser Karte, damit er lesbar ist. */
+[data-glass] .glass-surface {
+  background: rgba(255, 255, 255, 0.62) !important;
+  backdrop-filter: blur(28px) saturate(1.5);
+  -webkit-backdrop-filter: blur(28px) saturate(1.5);
+  border-color: rgba(255, 255, 255, 0.55) !important;
+  box-shadow: 0 8px 32px rgba(15, 40, 77, 0.12);
+}
+[data-glass] .glass-surface .bg-smoke { background: rgba(255, 255, 255, 0.35); }
+[data-glass] .glass-surface .bg-ice { background: rgba(255, 255, 255, 0.45); }
+[data-glass] .glass-surface .border-line { border-color: rgba(15, 40, 77, 0.08); }
+[data-glass] .glass-surface .hover\:bg-ice:hover { background: rgba(255, 255, 255, 0.55); }
+[data-glass] .glass-surface .bg-indigo2-50 { background: rgba(255, 255, 255, 0.7); }
+[data-glass] .mail-card { background: #fff; border-radius: 14px; padding: 20px 24px; box-shadow: 0 2px 10px rgba(15, 40, 77, 0.06); }

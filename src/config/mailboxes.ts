@@ -18,9 +18,9 @@ export const MAILBOXES: Mailbox[] = [
     label: 'Aleksa',
     address: 'aleksa@spalevic-partner.com',
     path: 'me',
-    // Aliase im selben Postfach — Senden als Alias braucht SendFromAliasesEnabled im Mandanten.
-    from: ['aleksa@spalevic-partner.com', 'aleksa@spalevic-consulting.de'],
+    from: ['aleksa@spalevic-partner.com'],
   },
+  // Spalevic Consulting (aleksa@spalevic-consulting.de) kommt, sobald das freigegebene Postfach existiert (STATUS 27.09.).
   {
     id: 'info',
     label: 'info@aleksa.ai',
@@ -35,6 +35,14 @@ export const MAILBOXES: Mailbox[] = [
     path: 'users/april@aleksa.ai',
     from: [],
     hint: 'Aprils Postfach — hier sendet sie selbst, du liest mit.',
+  },
+  {
+    id: 'destinymedia',
+    label: 'Archiv DestinyMedia',
+    address: 'archiv.destinymedia@spalevic-partner.com',
+    path: 'users/archiv.destinymedia@spalevic-partner.com',
+    from: [],
+    hint: 'Archiv von aleksa@destinymedia.de (Domain abgelaufen) — nur lesen, fuer die Liquidation.',
   },
 ]
 

@@ -20,7 +20,13 @@ export const MAILBOXES: Mailbox[] = [
     path: 'me',
     from: ['aleksa@spalevic-partner.com'],
   },
-  // Spalevic Consulting (aleksa@spalevic-consulting.de) kommt, sobald das freigegebene Postfach existiert (STATUS 27.09.).
+  {
+    id: 'consulting',
+    label: 'Spalevic Consulting',
+    address: 'aleksa@spalevic-consulting.de',
+    path: 'users/aleksa@spalevic-consulting.de',
+    from: ['aleksa@spalevic-consulting.de'],
+  },
   {
     id: 'info',
     label: 'info@aleksa.ai',

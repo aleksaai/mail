@@ -23,6 +23,11 @@
 - Farben nach Antwort: zugesagt/eigen Lila, Vorbehalt gestreift, offen gestrichelter Rand, abgesagt grau durchgestrichen. Build grün; **echter Login-Test durch Aleksa steht aus.**
 - Noch nicht: Einladungen direkt in der Mail beantworten, mehrere Kalender auswählen, Serien bearbeiten (Änderung trifft nur das einzelne Vorkommen).
 
+### Nachtrag 2026-09-28: Anhänge beim Senden
+- `graph.ts`: Senden läuft jetzt immer über einen Entwurf (`POST /messages` bzw. `createReply/createReplyAll/createForward` → PATCH → Anhänge → `/send`). Anhänge ≤ 3 MB direkt als `fileAttachment`, größere per `attachments/createUploadSession` in 4-MB-Stücken (uploadUrl ohne Authorization-Header), Grenze 150 MB je Datei.
+- `Compose.tsx`: Knopf „Anhang“, Dateien ins Fenster ziehen, Liste mit Größe + Entfernen; beim Weiterleiten gehen die Original-Anhänge automatisch mit. Build grün, **Versand mit Anhang noch nicht von Aleksa getestet.**
+- Neuer Bereich „Spalevic Consulting“ (`aleksa@spalevic-consulting.de`, eigenes freigegebenes Postfach, 2.151 migrierte Mails).
+
 ### Nächster Schritt
 1. Aleksa: Entra-App „Aleksa Mail“ (SPEC §6) → `.env` mit `VITE_MS_CLIENT_ID` (+ Tenant, erlaubter Nutzer, siehe `.env.example`); dieselben drei Variablen in Netlify.
 2. Cloud Shell: `Set-OrganizationConfig -SendFromAliasesEnabled $true` und `Add-RecipientPermission info@aleksa.ai -AccessRights SendAs -Trustee Aleksa@spalevic-partner.com`.

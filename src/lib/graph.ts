@@ -99,40 +99,66 @@ export const moveMessage = (mb: Mailbox, id: string, destinationId: string) =>
 const recipients = (list: string) =>
   list.split(/[,;]/).map(s => s.trim()).filter(Boolean).map(address => ({ emailAddress: { address } }))
 
-export interface Draft { from: string; to: string; cc: string; subject: string; html: string }
+export interface Draft { from: string; to: string; cc: string; subject: string; html: string; files?: File[] }
 
-/** Neue Mail senden — aus dem Bereich des Postfachs, mit gewaehlter Absenderadresse. */
-export async function sendNew(mb: Mailbox, d: Draft) {
-  await graph(`${root(mb)}/sendMail`, {
-    method: 'POST',
-    body: JSON.stringify({
-      message: {
-        subject: d.subject,
-        body: { contentType: 'HTML', content: d.html },
-        toRecipients: recipients(d.to),
-        ccRecipients: recipients(d.cc),
-        ...(d.from !== mb.address ? { from: { emailAddress: { address: d.from } } } : {}),
-      },
-      saveToSentItems: true,
-    }),
-  })
+/** Grenze fuer den direkten Upload; darueber Upload-Sitzung in Stuecken (Graph erlaubt bis 150 MB je Anhang). */
+const SMALL = 3 * 1024 * 1024
+export const MAX_ATTACHMENT = 150 * 1024 * 1024
+
+const toBase64 = (buf: ArrayBuffer) => {
+  const bytes = new Uint8Array(buf); let bin = ''
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+  return btoa(bin)
 }
 
-/** Antworten/Weiterleiten: Entwurf von Microsoft erzeugen lassen (Zitat + Verlauf), anpassen, senden. */
+async function attach(mb: Mailbox, draftId: string, file: File) {
+  const base = `${root(mb)}/messages/${encodeURIComponent(draftId)}/attachments`
+  if (file.size <= SMALL) {
+    await graph(base, { method: 'POST', body: JSON.stringify({
+      '@odata.type': '#microsoft.graph.fileAttachment', name: file.name, contentType: file.type || 'application/octet-stream',
+      contentBytes: toBase64(await file.arrayBuffer()),
+    }) })
+    return
+  }
+  const session = await graph<{ uploadUrl: string }>(`${base}/createUploadSession`, { method: 'POST', body: JSON.stringify({
+    AttachmentItem: { attachmentType: 'file', name: file.name, size: file.size, contentType: file.type || 'application/octet-stream' },
+  }) })
+  const CHUNK = 4 * 1024 * 1024
+  for (let start = 0; start < file.size; start += CHUNK) {
+    const end = Math.min(start + CHUNK, file.size)
+    // Die uploadUrl ist vorab autorisiert — ohne Authorization-Header senden, sonst lehnt Graph ab.
+    const res = await fetch(session.uploadUrl, { method: 'PUT', body: file.slice(start, end), headers: { 'Content-Range': `bytes ${start}-${end - 1}/${file.size}` } })
+    if (!res.ok) throw new Error(`Anhang „${file.name}“: Upload ${res.status}`)
+  }
+}
+
+const fields = (mb: Mailbox, d: Draft) => ({
+  subject: d.subject,
+  toRecipients: recipients(d.to),
+  ccRecipients: recipients(d.cc),
+  ...(d.from !== mb.address ? { from: { emailAddress: { address: d.from } } } : {}),
+})
+
+async function finish(mb: Mailbox, draftId: string, d: Draft) {
+  for (const f of d.files ?? []) await attach(mb, draftId, f)
+  await graph(`${root(mb)}/messages/${encodeURIComponent(draftId)}/send`, { method: 'POST', body: '{}' })
+}
+
+/** Neue Mail: Entwurf anlegen, Anhaenge dran, senden — aus dem Bereich des Postfachs, mit gewaehlter Absenderadresse. */
+export async function sendNew(mb: Mailbox, d: Draft) {
+  const draft = await graph<Message>(`${root(mb)}/messages`, { method: 'POST', body: JSON.stringify({ ...fields(mb, d), body: { contentType: 'HTML', content: d.html } }) })
+  await finish(mb, draft.id, d)
+}
+
+/** Antworten/Weiterleiten: Entwurf von Microsoft erzeugen lassen (Zitat + Verlauf, beim Weiterleiten samt Original-Anhaengen), anpassen, Anhaenge dran, senden. */
 export async function sendResponse(mb: Mailbox, messageId: string, kind: 'reply' | 'replyAll' | 'forward', d: Draft) {
   const action = kind === 'reply' ? 'createReply' : kind === 'replyAll' ? 'createReplyAll' : 'createForward'
   const draft = await graph<Message>(`${root(mb)}/messages/${encodeURIComponent(messageId)}/${action}`, { method: 'POST', body: '{}' })
   await graph(`${root(mb)}/messages/${encodeURIComponent(draft.id)}`, {
     method: 'PATCH',
-    body: JSON.stringify({
-      body: { contentType: 'HTML', content: d.html + (draft.body?.content ?? '') },
-      toRecipients: recipients(d.to),
-      ccRecipients: recipients(d.cc),
-      subject: d.subject,
-      ...(d.from !== mb.address ? { from: { emailAddress: { address: d.from } } } : {}),
-    }),
+    body: JSON.stringify({ ...fields(mb, d), body: { contentType: 'HTML', content: d.html + (draft.body?.content ?? '') } }),
   })
-  await graph(`${root(mb)}/messages/${encodeURIComponent(draft.id)}/send`, { method: 'POST', body: '{}' })
+  await finish(mb, draft.id, d)
 }
 
 export const me = () => graph<{ displayName: string; mail: string; userPrincipalName: string }>('/me?$select=displayName,mail,userPrincipalName')

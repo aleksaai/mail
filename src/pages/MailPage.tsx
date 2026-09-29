@@ -12,6 +12,7 @@ import { HtmlFrame } from '@/components/mail/HtmlFrame'
 import { Compose, type ComposeMode } from '@/components/mail/Compose'
 import { Skeleton } from '@/components/ui/skeleton'
 import { saveMessageAsPdf } from '@/lib/pdf'
+import { useLiquidGlass } from '@/lib/liquid-glass'
 import { openMenu } from '@/components/Shell'
 
 /** "Alle Posteingänge": eigener Pseudo-Bereich, der die Posteingaenge von INBOX_BOXES zusammenfuehrt. */
@@ -62,6 +63,7 @@ export function MailPage() {
   const [compose, setCompose] = useState<{ mb: Mailbox; mode: ComposeMode } | null>(null)
   const [scrolled, setScrolled] = useState(false)
   const scroller = useRef<HTMLDivElement>(null)
+  const headerGlass = useLiquidGlass({ radius: 20 })
   const folderLabel = all ? 'Alle Posteingänge' : FOLDERS.find(f => f.id === folder)?.label ?? folder
   const sentView = folder === 'sentitems' || folder === 'drafts'
 
@@ -125,13 +127,13 @@ export function MailPage() {
       {/* Liste: laeuft unter der schwebenden Glas-Kopfleiste durch */}
       <section className={`${messageId ? 'hidden lg:flex' : 'flex'} relative min-h-0 w-full shrink-0 flex-col lg:w-[400px] lg:border-r lg:border-white/50`}>
         <header className={`absolute inset-x-0 top-0 z-20 px-3 pt-2.5 transition-all duration-300 ${scrolled ? 'pb-2' : 'pb-3'}`}>
-          <div className={`lg flex items-center gap-2 rounded-[20px] pl-1.5 pr-2 md:pl-4 transition-all duration-300 ${scrolled ? 'h-12' : 'h-[60px]'}`}>
+          <div ref={headerGlass} className={`lg flex items-center gap-2 rounded-[20px] pl-1.5 pr-2 md:pl-4 transition-all duration-300 ${scrolled ? 'h-12' : 'h-[60px]'}`}>
             <button onClick={openMenu} aria-label="Menü" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-asphalt hover:bg-white/60 md:hidden"><Menu className="h-[18px] w-[18px]" /></button>
             <div className="min-w-0 flex-1">
               <p className={`truncate font-bold tracking-tight text-ink transition-all duration-300 ${scrolled ? 'text-[15px]' : 'text-[17px]'}`}>{folderLabel}</p>
               {!scrolled && <p className="truncate text-[11px] text-steel">{all ? `${boxes.length} Postfächer` : mb!.address}</p>}
             </div>
-            <form className="flex h-9 w-[46%] max-w-[200px] items-center gap-1.5 rounded-full bg-white/55 px-3 ring-1 ring-asphalt/[0.06] focus-within:bg-white/90 focus-within:ring-indigo2-500/50 transition-colors"
+            <form className="lg-well flex h-9 w-[46%] max-w-[200px] items-center gap-1.5 rounded-full px-3 transition-colors"
               onSubmit={e => { e.preventDefault(); setQuery(search.trim()) }}>
               <Search className="h-3.5 w-3.5 shrink-0 text-steel" />
               <input id="mail-search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Suchen" className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-steel/70" />
@@ -235,6 +237,7 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
   const qc = useQueryClient()
   const [remote, setRemote] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const bar = useLiquidGlass()
   const msg = useQuery({ queryKey: ['message', mb.id, id], queryFn: () => getMessage(mb, id) })
   const atts = useQuery({ queryKey: ['atts', mb.id, id], queryFn: () => listAttachments(mb, id), enabled: !!msg.data?.hasAttachments })
   const inline = useQuery({ queryKey: ['inline', mb.id, id], queryFn: () => inlineImages(mb, id), enabled: !!msg.data && /cid:/i.test(msg.data.body.content) })
@@ -267,7 +270,7 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
     <div className="relative flex min-h-0 flex-1 flex-col">
       {/* Schwebende Glas-Kapsel mit den Aktionen */}
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center px-3 pt-2.5">
-        <div className={`lg lg-pill pointer-events-auto flex items-center gap-0.5 px-1.5 transition-all duration-300 ${scrolled ? 'h-10' : 'h-11'}`}>
+        <div ref={bar} className={`lg lg-pill pointer-events-auto flex items-center gap-0.5 px-1.5 transition-all duration-300 ${scrolled ? 'h-10' : 'h-11'}`}>
           <button className={`${btn} lg:hidden`} onClick={onBack} title="Zurück"><ArrowLeft className="h-4 w-4" /></button>
           {canSend && <>
             <button className={btn} title="Antworten" onClick={() => onCompose({ kind: 'reply', message: m })}><Reply className="h-4 w-4" /></button>
@@ -284,7 +287,7 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
         </div>
       </div>
 
-      <div onScroll={e => setScrolled(e.currentTarget.scrollTop > 12)} className="aw-scroll smooth-scroll fade-edges flex-1 overflow-y-auto">
+      <div onScroll={e => setScrolled(e.currentTarget.scrollTop > 12)} className="aw-scroll smooth-scroll fade-top flex-1 overflow-y-auto">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
           className="mx-auto max-w-[860px] px-4 pb-10 pt-20 sm:px-8">
           <h2 className="text-[22px] font-bold leading-snug tracking-tight text-ink">{m.subject || '(kein Betreff)'}</h2>

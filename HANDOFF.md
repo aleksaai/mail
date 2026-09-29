@@ -1,5 +1,9 @@
 # HANDOFF — mail
 
+### Was wurde in dieser Session gemacht (2026-09-29)
+Kurzfassung (Details in den Nachträgen „2026-09-29“ weiter unten): Mail als PDF (Druckdialog), info@ oben + Start + andere Postfächer zugeklappt, formatiertes Schreiben mit empfängerfestem HTML, Liquid-Glass-Look (Randbrechung per SVG-Filter in Chromium, Glas-Lehren zu verschachteltem backdrop-filter und iframe), „Alle Posteingänge“, Beantwortet-Hinweis, dezente Schnellaktionen. Lokale Testseite ohne Login: `npm run dev` → `http://localhost:5173/ui-test.html?p=/mail/info/inbox/info-1` (Dateien `ui-test.html/.tsx` sind gitignored, liegen nur auf der MacBook home).
+**Offen bei Aleksa:** formatierte Mail an Gmail prüfen, Beantwortet-Pfeil nach neuer Antwort prüfen, sagen welcher Browser (Brechung nur Chrome/Edge/Arc). Danach Stufe 2 (Relevant/Sonstige, Unterhaltungen, Mehrfachauswahl, Wischen, Drag and Drop, Später erinnern) oder Stufe 3 (April im Postfach über Gateway).
+
 ### Was wurde in dieser Session gemacht (2026-09-27)
 - Entscheidungen: eigene App `mail.aleksa.ai`, **Mail + Kalender**, Design **genau wie PM-Tool**, **alle Postfächer getrennt** (SPEC §8).
 - **Phase 0 + Phase 1 (Mail) gebaut**, Build + Typprüfung grün, Anmeldeseite im Browser geprüft (PM-Look). Noch **nicht mit echtem Login getestet** — Entra-App fehlt.

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useMsal } from '@azure/msal-react'
 import { useQuery } from '@tanstack/react-query'
@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { Archive, CalendarDays, ChevronDown, FileText, Inbox, LogOut, Menu, Send, ShieldAlert, Trash2 } from 'lucide-react'
 import { useBackdrop } from '@/lib/background'
 import { BackdropPicker } from './BackdropPicker'
-import { FOLDERS, MAILBOXES, type Mailbox } from '@/config/mailboxes'
+import { FOLDERS, MAILBOXES, PRIMARY_MAILBOX, type Mailbox } from '@/config/mailboxes'
 import { folderInfo } from '@/lib/graph'
 import logo from '@/assets/aleksa-brand-logo.png'
 
@@ -24,13 +24,29 @@ function Unread({ mb, folder }: { mb: Mailbox; folder: string }) {
   return <span className="ml-auto text-[11px] font-semibold text-steel">{n}</span>
 }
 
+// Auf-/Zugeklappt je Geraet merken; Standard: nur das Hauptpostfach offen.
+const OPEN_KEY = 'mail.openMailboxes'
+function readOpen(): string[] {
+  try { const v = JSON.parse(localStorage.getItem(OPEN_KEY) ?? 'null'); if (Array.isArray(v)) return v } catch { /* egal */ }
+  return [PRIMARY_MAILBOX]
+}
+
 function MailboxSection({ mb }: { mb: Mailbox }) {
   const location = useLocation()
-  const [open, setOpen] = useState(true)
+  const [open, setOpenState] = useState(() => readOpen().includes(mb.id))
+  const setOpen = (fn: (o: boolean) => boolean) => setOpenState(o => {
+    const next = fn(o)
+    try { const ids = new Set(readOpen()); if (next) ids.add(mb.id); else ids.delete(mb.id); localStorage.setItem(OPEN_KEY, JSON.stringify([...ids])) } catch { /* egal */ }
+    return next
+  })
+  // Liegt die offene Mail in einem zugeklappten Postfach, dieses aufklappen.
+  const here = location.pathname.startsWith(`/mail/${mb.id}/`)
+  useEffect(() => { if (here && !open) setOpen(() => true) }, [here])
   return (
     <div className="space-y-0.5">
       <button onClick={() => setOpen(o => !o)} className="flex w-full items-center justify-between px-2 pt-1 pb-1 text-[11px] font-medium text-steel/80 hover:text-asphalt">
         <span className="truncate" title={mb.address}>{mb.label}</span>
+        {!open && <span className="ml-auto mr-1.5"><Unread mb={mb} folder="inbox" /></span>}
         <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? '' : '-rotate-90'}`} />
       </button>
       {open && FOLDERS.map(f => {

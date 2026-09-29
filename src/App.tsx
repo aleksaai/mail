@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { PRIMARY_MAILBOX } from '@/config/mailboxes'
 import { useMsal } from '@azure/msal-react'
 import { Toaster } from 'sonner'
 import { isAllowed } from './lib/auth'
@@ -17,7 +18,7 @@ export default function App() {
         <Routes>
           <Route path="/mail/:mailbox/:folder/:messageId?" element={<MailPage />} />
           <Route path="/kalender" element={<CalendarPage />} />
-          <Route path="*" element={<Navigate to="/mail/aleksa/inbox" replace />} />
+          <Route path="*" element={<Navigate to={`/mail/${PRIMARY_MAILBOX}/inbox`} replace />} />
         </Routes>
       </Shell>
       <Toaster position="bottom-right" />

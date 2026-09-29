@@ -14,6 +14,13 @@ export interface Mailbox {
 
 export const MAILBOXES: Mailbox[] = [
   {
+    id: 'info',
+    label: 'info@aleksa.ai',
+    address: 'info@aleksa.ai',
+    path: 'users/info@aleksa.ai',
+    from: ['info@aleksa.ai'],
+  },
+  {
     id: 'aleksa',
     label: 'Aleksa',
     address: 'aleksa@spalevic-partner.com',
@@ -26,13 +33,6 @@ export const MAILBOXES: Mailbox[] = [
     address: 'aleksa@spalevic-consulting.de',
     path: 'users/aleksa@spalevic-consulting.de',
     from: ['aleksa@spalevic-consulting.de'],
-  },
-  {
-    id: 'info',
-    label: 'info@aleksa.ai',
-    address: 'info@aleksa.ai',
-    path: 'users/info@aleksa.ai',
-    from: ['info@aleksa.ai'],
   },
   {
     id: 'april',
@@ -51,6 +51,9 @@ export const MAILBOXES: Mailbox[] = [
     hint: 'Archiv von aleksa@destinymedia.de (Domain abgelaufen) — nur lesen, für die Liquidation.',
   },
 ]
+
+/** Hauptpostfach: steht oben, ist als einziges aufgeklappt und die Startseite (Aleksa 29.09.2026). */
+export const PRIMARY_MAILBOX = 'info'
 
 export const mailboxById = (id?: string) => MAILBOXES.find(m => m.id === id)
 

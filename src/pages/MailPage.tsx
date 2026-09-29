@@ -5,7 +5,7 @@ import { format, isToday, isThisYear } from 'date-fns'
 import { de } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { Archive, ArrowLeft, FileDown, Forward, Image, Mail, MailOpen, Paperclip, PenSquare, Reply, ReplyAll, Search, Trash2, X } from 'lucide-react'
-import { FOLDERS, mailboxById } from '@/config/mailboxes'
+import { FOLDERS, PRIMARY_MAILBOX, mailboxById } from '@/config/mailboxes'
 import { attachmentBlob, getMessage, inlineImages, listAttachments, listMessages, moveMessage, updateMessage, type MessageSummary } from '@/lib/graph'
 import { HtmlFrame } from '@/components/mail/HtmlFrame'
 import { saveMessageAsPdf } from '@/lib/pdf'
@@ -23,7 +23,7 @@ const who = (m: MessageSummary, sent: boolean) =>
        : (m.from?.emailAddress.name || m.from?.emailAddress.address || '(unbekannt)')
 
 export function MailPage() {
-  const { mailbox = 'aleksa', folder = 'inbox', messageId } = useParams()
+  const { mailbox = PRIMARY_MAILBOX, folder = 'inbox', messageId } = useParams()
   const navigate = useNavigate()
   const qc = useQueryClient()
   const mb = mailboxById(mailbox)

@@ -42,6 +42,12 @@
 - Geprüft mit lokaler Testseite `ui-test.html` (Beispieldaten, kein Login, gitignored): Desktop, dunkler Hintergrund, Handy, Schreibfenster. **Echter Versand formatierter Mail an Gmail/Outlook noch nicht getestet.**
 - Nächste Stufen (vorgeschlagen, nicht gebaut): 2 = Relevant/Sonstige, Unterhaltungen, Mehrfachauswahl, Wischen, Drag and Drop auf Ordner, Später erinnern, Suchfilter. 3 = April im Postfach über den Gateway.
 
+### Nachtrag 2026-09-29 spät: echtes Glas statt weißer Transparenz
+- Aleksa: „das ist nicht Glas, ich sehe scharf durch“. Zwei Ursachen, beide im Browser gemessen:
+  1. **Verschachtelter backdrop-filter:** `.glass-surface` (Panel) hatte selbst `backdrop-filter` → in Chrome „Backdrop Root“ → Kopf-/Aktionsleiste darin verwischten den Text darunter NICHT. Fix: Panel-Unschärfe liegt jetzt auf `.glass-surface::before`, das Panel selbst hat keinen Filter. **Regel: nie Glas in einem Element mit backdrop-filter.**
+  2. **iframe-Inhalt** (Mail-Text) nimmt kein Browser in den backdrop auf. Fix: Lesebereich blendet oben unter der Aktionsleiste aus (`.fade-top`, wie Apples Scroll Edge Effect).
+- `src/lib/liquid-glass.ts` → `useLiquidGlass()` (Callback-Ref): SVG-Filter je Element mit Blur + Randbrechung (Verschiebungskarte aus Signed-Distance-Field des abgerundeten Rechtecks) + Sättigung. Nur Chromium (Chrome/Edge/Arc); Safari/Firefox bekommen die CSS-Variante von `.lg` (Blur, Tönung, Lichtkante per ::after-Verlaufsring). Eingesetzt an Kopfleiste der Liste + Aktionsleiste der Mail. Suchfeld als eingelassenes Feld `.lg-well`.
+
 ### Nächster Schritt
 1. Aleksa: Entra-App „Aleksa Mail“ (SPEC §6) → `.env` mit `VITE_MS_CLIENT_ID` (+ Tenant, erlaubter Nutzer, siehe `.env.example`); dieselben drei Variablen in Netlify.
 2. Cloud Shell: `Set-OrganizationConfig -SendFromAliasesEnabled $true` und `Add-RecipientPermission info@aleksa.ai -AccessRights SendAs -Trustee Aleksa@spalevic-partner.com`.

@@ -4,10 +4,11 @@ import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-quer
 import { format, isToday, isThisYear } from 'date-fns'
 import { de } from 'date-fns/locale'
 import { toast } from 'sonner'
-import { Archive, ArrowLeft, Forward, Image, Mail, MailOpen, Paperclip, PenSquare, Reply, ReplyAll, Search, Trash2, X } from 'lucide-react'
+import { Archive, ArrowLeft, FileDown, Forward, Image, Mail, MailOpen, Paperclip, PenSquare, Reply, ReplyAll, Search, Trash2, X } from 'lucide-react'
 import { FOLDERS, mailboxById } from '@/config/mailboxes'
 import { attachmentBlob, getMessage, inlineImages, listAttachments, listMessages, moveMessage, updateMessage, type MessageSummary } from '@/lib/graph'
 import { HtmlFrame } from '@/components/mail/HtmlFrame'
+import { saveMessageAsPdf } from '@/lib/pdf'
 import { Compose, type ComposeMode } from '@/components/mail/Compose'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -178,6 +179,8 @@ function Reader({ mailboxId, folder, id, onAct, onCompose, onBack }: {
         {folder !== 'archive' && <button className={iconBtn} title="Archivieren" onClick={() => onAct(() => moveMessage(mb, id, 'archive'), 'Archiviert')}><Archive className="w-4 h-4" /></button>}
         {folder !== 'deleteditems' && <button className={iconBtn} title="Löschen" onClick={() => onAct(() => moveMessage(mb, id, 'deleteditems'), 'In den Papierkorb verschoben')}><Trash2 className="w-4 h-4" /></button>}
         <button className={iconBtn} title="Als ungelesen markieren" onClick={() => onAct(() => updateMessage(mb, id, { isRead: false }), 'Als ungelesen markiert')}><MailOpen className="w-4 h-4" /></button>
+        <button className={`${iconBtn} ml-auto`} title="Als PDF speichern" disabled={inline.isLoading || atts.isLoading}
+          onClick={() => saveMessageAsPdf(m, html, { inline: inline.data ?? {}, allowRemote: remote, attachments: atts.data ?? [] })}><FileDown className="w-4 h-4" /></button>
       </div>
       <div className="flex-1 overflow-y-auto aw-scroll">
         <div className="px-6 pt-5 pb-3">

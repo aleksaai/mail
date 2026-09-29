@@ -28,6 +28,11 @@
 - `Compose.tsx`: Knopf „Anhang“, Dateien ins Fenster ziehen, Liste mit Größe + Entfernen; beim Weiterleiten gehen die Original-Anhänge automatisch mit. Build grün, **Versand mit Anhang noch nicht von Aleksa getestet.**
 - Neuer Bereich „Spalevic Consulting“ (`aleksa@spalevic-consulting.de`, eigenes freigegebenes Postfach, 2.151 migrierte Mails).
 
+### Nachtrag 2026-09-29: Mail als PDF
+- Knopf „Als PDF speichern“ (rechts in der Leiste der geöffneten Mail). `src/lib/pdf.ts`: Druckvorlage mit Betreff, Von/An/Cc/Datum/Anhangsnamen + Mail-Inhalt in unsichtbarem iframe (sandbox ohne Skripte + CSP), danach Druckdialog → „Als PDF sichern“. Echtes Text-PDF, Dateiname-Vorschlag `JJJJ-MM-TT Absender - Betreff`.
+- Externe Bilder kommen nur mit, wenn sie in der Mail freigegeben wurden (Tracking-Schutz bleibt). `prepareMailHtml` in `HtmlFrame.tsx` ist jetzt gemeinsam für Anzeige und PDF.
+- Build grün, **noch nicht von Aleksa im echten Login getestet.**
+
 ### Nächster Schritt
 1. Aleksa: Entra-App „Aleksa Mail“ (SPEC §6) → `.env` mit `VITE_MS_CLIENT_ID` (+ Tenant, erlaubter Nutzer, siehe `.env.example`); dieselben drei Variablen in Netlify.
 2. Cloud Shell: `Set-OrganizationConfig -SendFromAliasesEnabled $true` und `Add-RecipientPermission info@aleksa.ai -AccessRights SendAs -Trustee Aleksa@spalevic-partner.com`.

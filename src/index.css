@@ -245,21 +245,71 @@
   .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
 }
 
-/* Glas-Modus (Hintergrund gewaehlt): Leiste und Panel werden matt-transparent,
-   innere Flaechen durchsichtig. Mail-Inhalt bleibt auf weisser Karte, damit er lesbar ist. */
-[data-glass] .glass-surface {
-  background: rgba(255, 255, 255, 0.62) !important;
-  backdrop-filter: blur(28px) saturate(1.5);
-  -webkit-backdrop-filter: blur(28px) saturate(1.5);
-  border-color: rgba(255, 255, 255, 0.55) !important;
-  box-shadow: 0 8px 32px rgba(15, 40, 77, 0.12);
+/* ---------------------------------------------------------------------------
+   Liquid Glass (29.09.2026) — angelehnt an Apples Material:
+   Inhalt laeuft bis zum Rand, Bedienelemente schweben als Glas darueber.
+   Glas = Unschaerfe + Saettigung + helle Lichtkante oben + weicher Schatten.
+   Nur auf Bedienflaechen, nie auf dem Mail-Text (der bleibt auf weisser Karte).
+   --------------------------------------------------------------------------- */
+:root {
+  --lg-fill: rgba(255, 255, 255, 0.52);
+  --lg-fill-strong: rgba(255, 255, 255, 0.72);
+  --lg-edge: rgba(255, 255, 255, 0.7);
+  --lg-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 -1px 0 rgba(255,255,255,.25) inset, 0 12px 40px -12px rgba(15, 40, 77, 0.22), 0 2px 6px rgba(15, 40, 77, 0.06);
+  --lg-blur: blur(26px) saturate(185%);
 }
-[data-glass] .glass-surface .bg-smoke { background: rgba(255, 255, 255, 0.35); }
-[data-glass] .glass-surface .bg-ice { background: rgba(255, 255, 255, 0.45); }
-[data-glass] .glass-surface .border-line { border-color: rgba(15, 40, 77, 0.08); }
-[data-glass] .glass-surface .hover\:bg-ice:hover { background: rgba(255, 255, 255, 0.55); }
-[data-glass] .glass-surface .bg-indigo2-50 { background: rgba(255, 255, 255, 0.7); }
-[data-glass] .mail-card { background: #fff; border-radius: 14px; padding: 20px 24px; box-shadow: 0 2px 10px rgba(15, 40, 77, 0.06); }
+.lg {
+  position: relative;
+  background: var(--lg-fill);
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  border: 1px solid var(--lg-edge);
+  box-shadow: var(--lg-shadow);
+  isolation: isolate;
+}
+/* Glanzlicht: heller Verlauf von oben links, wie Licht auf Glas. */
+.lg::before {
+  content: '';
+  position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: -1;
+  background: linear-gradient(160deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,0) 38%, rgba(255,255,255,0) 70%, rgba(255,255,255,.18) 100%);
+}
+.lg-strong { background: var(--lg-fill-strong); }
+.lg-pill { border-radius: 999px; }
+/* Ohne backdrop-filter (alte Browser) deckender, damit es lesbar bleibt. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .lg { background: rgba(255, 255, 255, 0.94); }
+}
+
+/* Die grossen Flaechen (Leiste, Panel) sind ruhiger: weniger Glanz, damit die Liste darauf lesbar ist. */
+.glass-surface {
+  background: rgba(255, 255, 255, 0.46) !important;
+  -webkit-backdrop-filter: blur(34px) saturate(170%);
+  backdrop-filter: blur(34px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.65) !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.85) inset, 0 20px 60px -24px rgba(15, 40, 77, 0.25) !important;
+}
+.glass-surface .bg-smoke { background: rgba(255, 255, 255, 0.3); }
+.glass-surface .bg-ice { background: rgba(255, 255, 255, 0.45); }
+.glass-surface .border-line { border-color: rgba(15, 40, 77, 0.07); }
+.glass-surface .hover\:bg-ice:hover { background: rgba(255, 255, 255, 0.55); }
+.glass-surface .bg-indigo2-50 { background: rgba(255, 255, 255, 0.7); }
+
+.mail-card { background: #fff; border-radius: 18px; padding: 24px 28px; box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 10px 30px -14px rgba(15, 40, 77, 0.18); }
+@media (max-width: 640px) { .mail-card { padding: 16px; border-radius: 14px; } }
+
+/* Aktive Zeile in Listen: Glas-Kapsel mit Lila-Hauch. */
+.lg-selected {
+  background: linear-gradient(180deg, rgba(255,255,255,.85), rgba(246,244,254,.8));
+  box-shadow: 0 1px 0 #fff inset, 0 0 0 1px rgba(139, 121, 240, .28), 0 6px 18px -8px rgba(122, 102, 236, .35);
+}
+
+/* Weiches Scrollen + Inhalt blendet unter den schwebenden Leisten aus. */
+.smooth-scroll { scroll-behavior: smooth; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.fade-edges {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 14px, #000 calc(100% - 18px), transparent 100%);
+}
+@media (prefers-reduced-motion: reduce) { .smooth-scroll { scroll-behavior: auto; } }
 
 /* Schreibfeld: Darstellung wie beim Empfaenger (toEmailHtml setzt dieselben Abstaende inline). */
 .mail-editor p { margin: 0 0 10px; }
@@ -273,3 +323,9 @@
 .mail-editor a { color: #6d59d8; text-decoration: underline; }
 .mail-editor mark { border-radius: 2px; padding: 0 1px; }
 .mail-editor p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #a1bbe5; float: left; height: 0; pointer-events: none; }
+
+/* Scrollbalken erst beim Drueberfahren zeigen, sonst zerschneiden sie das Glas. */
+.smooth-scroll { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.smooth-scroll:hover { scrollbar-color: rgba(15, 40, 77, .18) transparent; }
+.smooth-scroll::-webkit-scrollbar-thumb { background: transparent; }
+.smooth-scroll:hover::-webkit-scrollbar-thumb { background: rgba(15, 40, 77, .18); }

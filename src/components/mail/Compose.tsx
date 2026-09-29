@@ -71,7 +71,8 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
   const title = mode.kind === 'new' ? 'Neue Mail' : mode.kind === 'forward' ? 'Weiterleiten' : 'Antworten'
   return (
     <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
-      <DialogContent className={`sm:max-w-2xl ${dragging ? 'ring-2 ring-primary' : ''}`}
+      <DialogContent className={`sm:max-w-2xl sm:rounded-[24px] !bg-white/80 backdrop-blur-2xl backdrop-saturate-150 border-white/70 shadow-[0_1px_0_rgba(255,255,255,.9)_inset,0_30px_80px_-20px_rgba(15,40,77,.35)] ${dragging ? 'ring-2 ring-primary' : ''}`}
+        onOpenAutoFocus={e => { e.preventDefault(); if (mode.kind === 'new') setTimeout(() => document.getElementById('compose-to')?.focus(), 0) }}
         onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDragging(true) } }}
         onDragLeave={e => { if (e.currentTarget === e.target) setDragging(false) }}
         onDrop={e => { e.preventDefault(); setDragging(false); addFiles(e.dataTransfer.files) }}>
@@ -84,7 +85,7 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
               <SelectContent>{mb.from.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-2"><span className="w-12 text-sm text-steel">An</span><Input value={to} onChange={e => setTo(e.target.value)} placeholder="name@firma.de, …" /></div>
+          <div className="flex items-center gap-2"><span className="w-12 text-sm text-steel">An</span><Input id="compose-to" value={to} onChange={e => setTo(e.target.value)} placeholder="name@firma.de, …" /></div>
           <div className="flex items-center gap-2"><span className="w-12 text-sm text-steel">Cc</span><Input value={cc} onChange={e => setCc(e.target.value)} /></div>
           <div className="flex items-center gap-2"><span className="w-12 text-sm text-steel">Betreff</span><Input value={subject} onChange={e => setSubject(e.target.value)} /></div>
           <div className="mt-2">

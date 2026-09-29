@@ -8,7 +8,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 export interface Backdrop { id: string; label: string; css: string }
 
 export const BACKDROPS: Backdrop[] = [
-  { id: 'none', label: 'Standard', css: '' },
+  { id: 'none', label: 'Standard', css: 'radial-gradient(at 8% 12%, #dcd5fb 0, transparent 45%), radial-gradient(at 92% 8%, #cfe6ff 0, transparent 45%), radial-gradient(at 78% 92%, #f3dcf3 0, transparent 50%), radial-gradient(at 20% 85%, #d6f0ff 0, transparent 45%), #f1f4fb' },
   { id: 'lavendel', label: 'Lavendel', css: 'radial-gradient(at 12% 18%, #c9bff8 0, transparent 55%), radial-gradient(at 88% 12%, #f5c6ec 0, transparent 50%), radial-gradient(at 70% 88%, #b9d8ff 0, transparent 55%), #eef0ff' },
   { id: 'morgen', label: 'Morgen', css: 'radial-gradient(at 10% 90%, #ffd6c9 0, transparent 55%), radial-gradient(at 85% 15%, #ffe8a8 0, transparent 50%), radial-gradient(at 50% 50%, #fbd3e9 0, transparent 60%), #fff4ef' },
   { id: 'ozean', label: 'Ozean', css: 'radial-gradient(at 15% 20%, #9fd3ff 0, transparent 55%), radial-gradient(at 85% 80%, #7be0d6 0, transparent 55%), radial-gradient(at 60% 10%, #c3c8ff 0, transparent 50%), #e8f6ff' },

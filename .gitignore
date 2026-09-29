@@ -4,3 +4,7 @@ dist
 .env.local
 *.tsbuildinfo
 .DS_Store
+
+# lokale Testseite mit Beispieldaten (ohne Login)
+ui-test.html
+ui-test.tsx

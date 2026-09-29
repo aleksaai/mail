@@ -33,6 +33,15 @@
 - Externe Bilder kommen nur mit, wenn sie in der Mail freigegeben wurden (Tracking-Schutz bleibt). `prepareMailHtml` in `HtmlFrame.tsx` ist jetzt gemeinsam für Anzeige und PDF.
 - Build grün, **noch nicht von Aleksa im echten Login getestet.**
 
+### Nachtrag 2026-09-29 abends: Formatierung + Liquid-Glass-Look (Stufe 1)
+- **Formatiertes Schreiben** (`src/components/mail/MailEditor.tsx`, Tiptap 3): Größe, fett/kursiv/unterstrichen/durchgestrichen, Schriftfarbe, Markieren, Aufzählung, Nummerierung, Zitat, Ausrichtung, Link (⌘K), Formatierung entfernen; ⌘B/⌘I/⌘U, ⌘⇧8/⌘⇧7, ⌘Enter sendet. Einfügen aus Word/Google behält die Formatierung.
+- **Empfängerfest** (`src/lib/email-html.ts` → `toEmailHtml`): jedes Element bekommt Inline-Styles (Gmail/Outlook werfen `<style>` und Klassen weg), `<mark>` → `<span style=background-color>` (Outlook für Windows), leere Zeilen behalten Höhe, Schrift Aptos/Calibri/Helvetica. Bei Antworten steht der eigene Text jetzt hinter `<body>` des Microsoft-Entwurfs statt vor `<html>` (`withReply` in graph.ts).
+- **Liquid Glass** (`index.css` Abschnitt „Liquid Glass“: `.lg`, `.lg-pill`, `.lg-selected`, `.glass-surface`, `.fade-edges`, `.smooth-scroll`): Standard-Hintergrund ist jetzt ein zarter Verlauf, Glas also immer an. Kopfleiste der Liste und Aktionsleiste der Mail schweben als Glas, Inhalt läuft darunter durch, Leisten werden beim Scrollen schmaler. Aktive Zeile in der Leiste = gleitende Glas-Kapsel (motion `layoutId`). Avatare mit Initialen, Schnellaktionen beim Drüberfahren (gelesen/archivieren/löschen), weiches Einblenden. Scrollbalken erst beim Drüberfahren.
+- **Seitenleiste:** Postfächer mit Farbe + Adresse darunter, „Aleksa“ heißt jetzt „Aleksa persönlich“, Aufklappen animiert. **„Alle Posteingänge“** (`/mail/alle/inbox`): info@, persönlich, Consulting zusammen, nach Datum sortiert, Farbpunkt je Postfach; Nachricht-ID in der URL als `<postfach>~<id>`.
+- Mobil: Menüknopf sitzt in der Glas-Kopfleiste (`openMenu()` aus Shell.tsx), auf Nicht-Mail-Seiten schwebt er weiter.
+- Geprüft mit lokaler Testseite `ui-test.html` (Beispieldaten, kein Login, gitignored): Desktop, dunkler Hintergrund, Handy, Schreibfenster. **Echter Versand formatierter Mail an Gmail/Outlook noch nicht getestet.**
+- Nächste Stufen (vorgeschlagen, nicht gebaut): 2 = Relevant/Sonstige, Unterhaltungen, Mehrfachauswahl, Wischen, Drag and Drop auf Ordner, Später erinnern, Suchfilter. 3 = April im Postfach über den Gateway.
+
 ### Nächster Schritt
 1. Aleksa: Entra-App „Aleksa Mail“ (SPEC §6) → `.env` mit `VITE_MS_CLIENT_ID` (+ Tenant, erlaubter Nutzer, siehe `.env.example`); dieselben drei Variablen in Netlify.
 2. Cloud Shell: `Set-OrganizationConfig -SendFromAliasesEnabled $true` und `Add-RecipientPermission info@aleksa.ai -AccessRights SendAs -Trustee Aleksa@spalevic-partner.com`.

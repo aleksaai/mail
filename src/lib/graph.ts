@@ -37,6 +37,7 @@ export interface MessageSummary {
   flag?: { flagStatus: string }
   from?: { emailAddress: Address }
   toRecipients?: { emailAddress: Address }[]
+  singleValueExtendedProperties?: { id: string; value: string }[]
 }
 export interface Message extends MessageSummary {
   body: { contentType: string; content: string }
@@ -49,6 +50,28 @@ export interface Folder { id: string; displayName: string; unreadItemCount: numb
 
 const SUMMARY_FIELDS = 'id,conversationId,subject,bodyPreview,receivedDateTime,sentDateTime,isRead,isDraft,hasAttachments,importance,flag,from,toRecipients'
 const root = (mb: Mailbox) => `/${mb.path}`
+
+/**
+ * "Beantwortet/Weitergeleitet" wie in Outlook: Exchange merkt sich das in zwei MAPI-Eigenschaften
+ * (PidTagLastVerbExecuted 0x1081 = 102 Antwort, 103 Allen antworten, 104 Weiterleiten; 0x1082 = Zeitpunkt).
+ * Graph liefert sie nur auf ausdruecklichen Wunsch per $expand.
+ */
+const VERB = 'Integer 0x1081'
+const VERB_TIME = 'SystemTime 0x1082'
+const EXPAND_VERB = `$expand=${encodeURIComponent(`singleValueExtendedProperties($filter=id eq '${VERB}')`)}`
+/** Mit Markierung laden; lehnt Graph den $expand ab, ohne (die Liste darf daran nie scheitern). */
+async function withVerb<T>(url: string): Promise<T> {
+  try { return await graph<T>(`${url}&${EXPAND_VERB}`) }
+  catch (e) { if (/expand|extended|filter|Invalid/i.test((e as Error).message)) return graph<T>(url); throw e }
+}
+export type Verb = 'reply' | 'replyAll' | 'forward'
+export function lastVerb(m: MessageSummary): { kind: Verb } | null {
+  const props = m.singleValueExtendedProperties ?? []
+  const v = Number(props.find(p => p.id.toLowerCase() === VERB.toLowerCase())?.value)
+  const kind: Verb | null = v === 102 ? 'reply' : v === 103 ? 'replyAll' : v === 104 ? 'forward' : null
+  if (!kind) return null
+  return { kind }
+}
 
 export const listFolders = (mb: Mailbox) =>
   graph<{ value: Folder[] }>(`${root(mb)}/mailFolders?$top=100&$select=id,displayName,unreadItemCount,totalItemCount`).then(r => r.value)
@@ -63,13 +86,21 @@ export async function listMessages(mb: Mailbox, folder: string, opts: { next?: s
     return graph<{ value: MessageSummary[]; '@odata.nextLink'?: string }>(`${root(mb)}/messages?$search=${q}&$top=40&$select=${SUMMARY_FIELDS}`)
   }
   const order = folder === 'drafts' || folder === 'sentitems' ? 'sentDateTime desc' : 'receivedDateTime desc'
-  return graph<{ value: MessageSummary[]; '@odata.nextLink'?: string }>(
+  return withVerb<{ value: MessageSummary[]; '@odata.nextLink'?: string }>(
     `${root(mb)}/mailFolders/${folder}/messages?$top=40&$orderby=${encodeURIComponent(order)}&$select=${SUMMARY_FIELDS}`,
   )
 }
 
 export const getMessage = (mb: Mailbox, id: string) =>
-  graph<Message>(`${root(mb)}/messages/${encodeURIComponent(id)}?$select=${SUMMARY_FIELDS},body,ccRecipients,replyTo,webLink`)
+  withVerb<Message>(`${root(mb)}/messages/${encodeURIComponent(id)}?$select=${SUMMARY_FIELDS},body,ccRecipients,replyTo,webLink`)
+
+/** Eigene Antworten/Weiterleitungen in derselben Unterhaltung (Gesendet), neueste zuerst. Fallback, falls
+ *  die Outlook-Markierung fehlt (z.B. Antwort vom Handy oder aus einem anderen Programm). */
+export async function sentInConversation(mb: Mailbox, conversationId: string) {
+  const f = encodeURIComponent(`conversationId eq '${conversationId.replace(/'/g, "''")}'`)
+  const r = await graph<{ value: MessageSummary[] }>(`${root(mb)}/mailFolders/sentitems/messages?$filter=${f}&$top=10&$select=id,subject,sentDateTime,toRecipients,conversationId`)
+  return r.value.sort((a, b) => (b.sentDateTime ?? '').localeCompare(a.sentDateTime ?? ''))
+}
 
 export const listAttachments = (mb: Mailbox, id: string) =>
   graph<{ value: Attachment[] }>(`${root(mb)}/messages/${encodeURIComponent(id)}/attachments?$select=id,name,contentType,size,isInline`).then(r => r.value)
@@ -165,6 +196,11 @@ export async function sendResponse(mb: Mailbox, messageId: string, kind: 'reply'
     body: JSON.stringify({ ...fields(mb, d), body: { contentType: 'HTML', content: withReply(d.html, draft.body?.content ?? '') } }),
   })
   await finish(mb, draft.id, d)
+  // Wie Outlook markieren, damit Liste, Lesebereich (und Outlook selbst) "beantwortet" zeigen. Scheitert still.
+  const verb = kind === 'reply' ? 102 : kind === 'replyAll' ? 103 : 104
+  await graph(`${root(mb)}/messages/${encodeURIComponent(messageId)}`, { method: 'PATCH', body: JSON.stringify({
+    singleValueExtendedProperties: [{ id: VERB, value: String(verb) }, { id: VERB_TIME, value: new Date().toISOString() }],
+  }) }).catch(() => {})
 }
 
 export const me = () => graph<{ displayName: string; mail: string; userPrincipalName: string }>('/me?$select=displayName,mail,userPrincipalName')

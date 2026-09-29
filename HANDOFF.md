@@ -48,6 +48,11 @@
   2. **iframe-Inhalt** (Mail-Text) nimmt kein Browser in den backdrop auf. Fix: Lesebereich blendet oben unter der Aktionsleiste aus (`.fade-top`, wie Apples Scroll Edge Effect).
 - `src/lib/liquid-glass.ts` → `useLiquidGlass()` (Callback-Ref): SVG-Filter je Element mit Blur + Randbrechung (Verschiebungskarte aus Signed-Distance-Field des abgerundeten Rechtecks) + Sättigung. Nur Chromium (Chrome/Edge/Arc); Safari/Firefox bekommen die CSS-Variante von `.lg` (Blur, Tönung, Lichtkante per ::after-Verlaufsring). Eingesetzt an Kopfleiste der Liste + Aktionsleiste der Mail. Suchfeld als eingelassenes Feld `.lg-well`.
 
+### Nachtrag 2026-09-29 nachts: „Beantwortet“ + dezentere Zeilen
+- **Beantwortet/Weitergeleitet** wie Outlook: MAPI-Eigenschaft `Integer 0x1081` (102/103/104) wird in Liste + Mail per `$expand=singleValueExtendedProperties(...)` mitgeladen (`withVerb` fällt ohne $expand zurück, falls Graph ablehnt). Nach eigenem Senden setzt `sendResponse` die Eigenschaft am Original (+ `SystemTime 0x1082`), damit auch Outlook „beantwortet“ zeigt. Zusätzlich sucht die Mail-Ansicht eigene Antworten derselben Unterhaltung in Gesendet (`sentInConversation`) → Hinweis „Du hast am … geantwortet an … · Ansehen“ (öffnet die Antwort). Liste: kleines ↩ bzw. ⇨ neben dem Namen.
+- **Ungeprüft gegen echtes Graph:** ob `$expand` mit `$filter` auf die Eigenschaft im Mandanten durchgeht und ob das PATCH am Original erlaubt ist. Mails, auf die vor diesem Stand geantwortet wurde, zeigen den Hinweis über die Gesendet-Suche.
+- Zeilen: Schnellaktionen sind drei dezente Symbole an Stelle der Uhrzeit (kein eigener Kasten), Zeile ist jetzt `div role=button` (keine verschachtelten Buttons). Hover = hauchdünne Glasscheibe (`.row-glass`), Auswahl `.lg-selected` ebenfalls als Scheibe.
+
 ### Nächster Schritt
 1. Aleksa: Entra-App „Aleksa Mail“ (SPEC §6) → `.env` mit `VITE_MS_CLIENT_ID` (+ Tenant, erlaubter Nutzer, siehe `.env.example`); dieselben drei Variablen in Netlify.
 2. Cloud Shell: `Set-OrganizationConfig -SendFromAliasesEnabled $true` und `Add-RecipientPermission info@aleksa.ai -AccessRights SendAs -Trustee Aleksa@spalevic-partner.com`.

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query'
 import { format, isToday, isThisYear, isYesterday } from 'date-fns'
@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { motion } from 'motion/react'
 import { Archive, ArrowLeft, Menu, FileDown, Forward, Image, Mail, MailOpen, Paperclip, PenSquare, Reply, ReplyAll, Search, Trash2, X } from 'lucide-react'
 import { FOLDERS, INBOX_BOXES, PRIMARY_MAILBOX, mailboxById, type Mailbox } from '@/config/mailboxes'
-import { attachmentBlob, getMessage, inlineImages, listAttachments, listMessages, moveMessage, updateMessage, type MessageSummary } from '@/lib/graph'
+import { attachmentBlob, getMessage, lastVerb, sentInConversation, inlineImages, listAttachments, listMessages, moveMessage, updateMessage, type MessageSummary } from '@/lib/graph'
 import { HtmlFrame } from '@/components/mail/HtmlFrame'
 import { Compose, type ComposeMode } from '@/components/mail/Compose'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -199,32 +199,36 @@ function Row({ it, index, all, sentView, active, onOpen, onArchive, onDelete, on
   const { m, mb } = it
   const unread = !m.isRead && !sentView
   const name = who(m, sentView)
-  const quick = 'inline-flex h-7 w-7 items-center justify-center rounded-full text-steel hover:bg-white hover:text-asphalt transition-colors'
+  const verb = sentView ? null : lastVerb(m)
+  // Schnellaktion: dezentes Symbol direkt in der Zeile, kein eigener Kasten (Aleksa 29.09.)
+  const quick = (fn?: () => void) => (e: MouseEvent) => { e.stopPropagation(); fn?.() }
+  const icon = 'inline-flex h-6 w-6 items-center justify-center rounded-full text-steel/80 hover:text-ink hover:bg-white/50 transition-colors [&_svg]:h-[14px] [&_svg]:w-[14px]'
   return (
-    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, delay: Math.min(index, 14) * 0.018, ease: [0.32, 0.72, 0, 1] }}
-      className={`group relative mb-0.5 rounded-[16px] transition-[background,box-shadow] duration-200 ${active ? 'lg-selected' : 'hover:bg-white/45'}`}>
-      <button onClick={onOpen} className="flex w-full gap-3 px-3 py-2.5 text-left">
-        <span className="relative flex h-9 w-9 shrink-0 self-start">
-          <Avatar name={name} address={sentView ? m.toRecipients?.[0]?.emailAddress.address : m.from?.emailAddress.address} />
-          {all && <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-white" style={{ background: mb.color }} title={mb.label} />}
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-1.5">
-            <span className={`truncate text-[13.5px] ${unread ? 'font-semibold text-ink' : 'text-asphalt'}`}>{name}</span>
-            {m.hasAttachments && <Paperclip className="h-3 w-3 shrink-0 text-steel" />}
-            <span className={`ml-auto shrink-0 text-[11px] tabular-nums group-hover:opacity-0 transition-opacity ${unread ? 'font-semibold text-indigo2-700' : 'text-steel'}`}>{when(m.receivedDateTime || m.sentDateTime)}</span>
+    <motion.div role="button" tabIndex={0} onClick={onOpen} onKeyDown={e => { if (e.key === 'Enter') onOpen() }}
+      initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, delay: Math.min(index, 14) * 0.018, ease: [0.32, 0.72, 0, 1] }}
+      className={`row-glass group relative mb-0.5 flex cursor-pointer gap-3 rounded-[16px] px-3 py-2.5 outline-none ${active ? 'lg-selected' : ''}`}>
+      <span className="relative flex h-9 w-9 shrink-0 self-start">
+        <Avatar name={name} address={sentView ? m.toRecipients?.[0]?.emailAddress.address : m.from?.emailAddress.address} />
+        {all && <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ring-2 ring-white" style={{ background: mb.color }} title={mb.label} />}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex h-6 items-center gap-1.5">
+          <span className={`truncate text-[13.5px] ${unread ? 'font-semibold text-ink' : 'text-asphalt'}`}>{name}</span>
+          {verb && (verb.kind === 'forward'
+            ? <Forward className="h-3 w-3 shrink-0 text-steel/80" aria-label="Weitergeleitet" />
+            : <Reply className="h-3 w-3 shrink-0 text-steel/80" aria-label="Beantwortet" />)}
+          {m.hasAttachments && <Paperclip className="h-3 w-3 shrink-0 text-steel/80" />}
+          <span className={`ml-auto shrink-0 text-[11px] tabular-nums transition-opacity group-hover:hidden [@media(hover:none)]:!inline ${unread ? 'font-semibold text-indigo2-700' : 'text-steel'}`}>{when(m.receivedDateTime || m.sentDateTime)}</span>
+          <span className="ml-auto hidden shrink-0 items-center group-hover:flex [@media(hover:none)]:!hidden">
+            <button className={icon} title={m.isRead ? 'Als ungelesen markieren' : 'Als gelesen markieren'} onClick={quick(onToggleRead)}><MailOpen /></button>
+            {onArchive && <button className={icon} title="Archivieren" onClick={quick(onArchive)}><Archive /></button>}
+            {onDelete && <button className={`${icon} hover:!text-destructive`} title="Löschen" onClick={quick(onDelete)}><Trash2 /></button>}
           </span>
-          <span className={`mt-0.5 block truncate text-[13px] ${unread ? 'font-medium text-ink' : 'text-asphalt/85'}`}>{m.subject || '(kein Betreff)'}</span>
-          <span className="mt-0.5 block truncate text-[12px] text-body">{m.bodyPreview}</span>
         </span>
-      </button>
+        <span className={`block truncate text-[13px] ${unread ? 'font-medium text-ink' : 'text-asphalt/85'}`}>{m.subject || '(kein Betreff)'}</span>
+        <span className="mt-0.5 block truncate text-[12px] text-body">{m.bodyPreview}</span>
+      </span>
       {unread && <span className="absolute left-1 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_8px_rgba(139,121,240,.8)]" />}
-      {/* Schnellaktionen beim Drueberfahren, wie in Outlook */}
-      <div className="lg lg-pill pointer-events-none absolute right-2 top-2 flex items-center gap-0.5 px-1 py-0.5 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 [@media(hover:none)]:hidden">
-        <button className={quick} title={m.isRead ? 'Als ungelesen markieren' : 'Als gelesen markieren'} onClick={onToggleRead}><MailOpen className="h-3.5 w-3.5" /></button>
-        {onArchive && <button className={quick} title="Archivieren" onClick={onArchive}><Archive className="h-3.5 w-3.5" /></button>}
-        {onDelete && <button className={`${quick} hover:!text-destructive`} title="Löschen" onClick={onDelete}><Trash2 className="h-3.5 w-3.5" /></button>}
-      </div>
     </motion.div>
   )
 }
@@ -240,6 +244,14 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
   const bar = useLiquidGlass()
   const msg = useQuery({ queryKey: ['message', mb.id, id], queryFn: () => getMessage(mb, id) })
   const atts = useQuery({ queryKey: ['atts', mb.id, id], queryFn: () => listAttachments(mb, id), enabled: !!msg.data?.hasAttachments })
+  const nav = useNavigate()
+  // Eigene Antworten in dieser Unterhaltung, die nach dieser Mail rausgingen.
+  const replies = useQuery({
+    queryKey: ['replies', mb.id, msg.data?.conversationId],
+    queryFn: () => sentInConversation(mb, msg.data!.conversationId),
+    enabled: !!msg.data?.conversationId && folder !== 'sentitems' && folder !== 'drafts',
+    staleTime: 60_000,
+  })
   const inline = useQuery({ queryKey: ['inline', mb.id, id], queryFn: () => inlineImages(mb, id), enabled: !!msg.data && /cid:/i.test(msg.data.body.content) })
 
   useEffect(() => {
@@ -265,6 +277,11 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
   const html = m.body.contentType === 'html' ? m.body.content : `<pre>${m.body.content.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</pre>`
   const btn = 'inline-flex h-8 w-8 items-center justify-center rounded-full text-asphalt/70 hover:bg-white/80 hover:text-ink transition-colors disabled:opacity-40'
   const files = atts.data?.filter(a => !a.isInline) ?? []
+  const received = new Date(m.receivedDateTime || 0).getTime()
+  const mine = (replies.data ?? []).filter(r => r.id !== m.id && new Date(r.sentDateTime ?? 0).getTime() > received)
+  const verb = lastVerb(m)
+  const answered = folder !== 'sentitems' && folder !== 'drafts' && (mine.length > 0 || !!verb)
+  const latest = mine[0]
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
@@ -302,6 +319,22 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
               {showBox && <p className="mt-0.5 inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: mb.color }} />{mb.label}</p>}
             </div>
           </div>
+          {answered && (
+            <button onClick={() => latest && nav(`/mail/${mb.id}/sentitems/${encodeURIComponent(latest.id)}`)} disabled={!latest}
+              className="row-glass lg-selected mt-4 flex w-full items-center gap-2.5 rounded-[14px] px-3 py-2 text-left text-[12.5px] text-asphalt enabled:hover:-translate-y-px transition-transform">
+              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo2-100 text-indigo2-700">
+                {verb?.kind === 'forward' && !latest ? <Forward className="h-3.5 w-3.5" /> : <Reply className="h-3.5 w-3.5" />}
+              </span>
+              <span className="min-w-0 flex-1 truncate">
+                {latest
+                  ? <>Du hast am <b className="font-semibold">{format(new Date(latest.sentDateTime!), "d. MMM 'um' HH:mm", { locale: de })}</b> geantwortet
+                      {latest.toRecipients?.length ? <> an {latest.toRecipients.map(r => r.emailAddress.name || r.emailAddress.address).join(', ')}</> : null}
+                      {mine.length > 1 && <span className="text-steel"> · {mine.length} Antworten</span>}</>
+                  : verb?.kind === 'forward' ? 'Du hast diese Mail weitergeleitet' : 'Du hast auf diese Mail geantwortet'}
+              </span>
+              {latest && <span className="shrink-0 text-[12px] font-medium text-indigo2-700">Ansehen</span>}
+            </button>
+          )}
           {files.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {files.map(a => (

@@ -4,7 +4,8 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
+import { MailEditor } from './MailEditor'
+import { hasContent, toEmailHtml } from '@/lib/email-html'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { Mailbox } from '@/config/mailboxes'
 import { MAX_ATTACHMENT, sendNew, sendResponse, type Message } from '@/lib/graph'
@@ -12,14 +13,14 @@ import { MAX_ATTACHMENT, sendNew, sendResponse, type Message } from '@/lib/graph
 export type ComposeMode = { kind: 'new' } | { kind: 'reply' | 'replyAll' | 'forward'; message: Message }
 
 const addr = (list?: { emailAddress: { address: string } }[]) => (list ?? []).map(r => r.emailAddress.address)
-const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode: ComposeMode; open: boolean; onClose: () => void; onSent: () => void }) {
   const [from, setFrom] = useState(mb.from[0] ?? '')
   const [to, setTo] = useState('')
   const [cc, setCc] = useState('')
   const [subject, setSubject] = useState('')
-  const [text, setText] = useState('')
+  const [html, setHtml] = useState('')
+  const [editorKey, setEditorKey] = useState(0)
   const [sending, setSending] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [dragging, setDragging] = useState(false)
@@ -35,7 +36,8 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
 
   useEffect(() => {
     if (!open) return
-    setText('')
+    setHtml('')
+    setEditorKey(k => k + 1)
     setFiles([])
     if (mode.kind === 'new') { setTo(''); setCc(''); setSubject(''); setFrom(mb.from[0] ?? ''); return }
     const m = mode.message
@@ -56,7 +58,7 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
     if (!to.trim()) { toast.error('Empfänger fehlt'); return }
     setSending(true)
     try {
-      const d = { from, to, cc, subject, html: `<div>${esc(text).replace(/\n/g, '<br>')}</div>`, files }
+      const d = { from, to, cc, subject, html: hasContent(html) ? toEmailHtml(html) : '', files }
       if (mode.kind === 'new') await sendNew(mb, d)
       else await sendResponse(mb, mode.message.id, mode.kind, d)
       toast.success('Gesendet')
@@ -85,8 +87,10 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
           <div className="flex items-center gap-2"><span className="w-12 text-sm text-steel">An</span><Input value={to} onChange={e => setTo(e.target.value)} placeholder="name@firma.de, …" /></div>
           <div className="flex items-center gap-2"><span className="w-12 text-sm text-steel">Cc</span><Input value={cc} onChange={e => setCc(e.target.value)} /></div>
           <div className="flex items-center gap-2"><span className="w-12 text-sm text-steel">Betreff</span><Input value={subject} onChange={e => setSubject(e.target.value)} /></div>
-          <Textarea value={text} onChange={e => setText(e.target.value)} rows={12} autoFocus className="mt-2" placeholder={mode.kind === 'new' ? '' : 'Deine Antwort — der bisherige Verlauf wird automatisch angehängt.'}
-            onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') void send() }} />
+          <div className="mt-2">
+            <MailEditor key={editorKey} onChange={setHtml} onSubmit={() => void send()} autoFocus={mode.kind !== 'new'}
+              placeholder={mode.kind === 'new' ? 'Schreib deine Nachricht …' : 'Deine Antwort, der bisherige Verlauf wird automatisch angehängt.'} />
+          </div>
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-1">
               {files.map((f, n) => (

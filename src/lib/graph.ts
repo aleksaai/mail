@@ -150,13 +150,19 @@ export async function sendNew(mb: Mailbox, d: Draft) {
   await finish(mb, draft.id, d)
 }
 
+/** Eigene Antwort an den Anfang des Microsoft-Entwurfs setzen, und zwar hinter <body>, nicht vor <html>. */
+const withReply = (mine: string, quoted: string) => {
+  const m = quoted.match(/<body[^>]*>/i)
+  return m ? quoted.replace(m[0], `${m[0]}${mine}<br>`) : mine + quoted
+}
+
 /** Antworten/Weiterleiten: Entwurf von Microsoft erzeugen lassen (Zitat + Verlauf, beim Weiterleiten samt Original-Anhaengen), anpassen, Anhaenge dran, senden. */
 export async function sendResponse(mb: Mailbox, messageId: string, kind: 'reply' | 'replyAll' | 'forward', d: Draft) {
   const action = kind === 'reply' ? 'createReply' : kind === 'replyAll' ? 'createReplyAll' : 'createForward'
   const draft = await graph<Message>(`${root(mb)}/messages/${encodeURIComponent(messageId)}/${action}`, { method: 'POST', body: '{}' })
   await graph(`${root(mb)}/messages/${encodeURIComponent(draft.id)}`, {
     method: 'PATCH',
-    body: JSON.stringify({ ...fields(mb, d), body: { contentType: 'HTML', content: d.html + (draft.body?.content ?? '') } }),
+    body: JSON.stringify({ ...fields(mb, d), body: { contentType: 'HTML', content: withReply(d.html, draft.body?.content ?? '') } }),
   })
   await finish(mb, draft.id, d)
 }

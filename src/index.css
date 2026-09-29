@@ -260,3 +260,16 @@
 [data-glass] .glass-surface .hover\:bg-ice:hover { background: rgba(255, 255, 255, 0.55); }
 [data-glass] .glass-surface .bg-indigo2-50 { background: rgba(255, 255, 255, 0.7); }
 [data-glass] .mail-card { background: #fff; border-radius: 14px; padding: 20px 24px; box-shadow: 0 2px 10px rgba(15, 40, 77, 0.06); }
+
+/* Schreibfeld: Darstellung wie beim Empfaenger (toEmailHtml setzt dieselben Abstaende inline). */
+.mail-editor p { margin: 0 0 10px; }
+.mail-editor h2 { font-size: 18px; font-weight: 700; margin: 14px 0 8px; }
+.mail-editor h3 { font-size: 15px; font-weight: 700; margin: 12px 0 6px; }
+.mail-editor ul { list-style: disc; padding-left: 24px; margin: 0 0 10px; }
+.mail-editor ol { list-style: decimal; padding-left: 24px; margin: 0 0 10px; }
+.mail-editor li { margin: 0 0 4px; }
+.mail-editor li > p { margin: 0; }
+.mail-editor blockquote { margin: 0 0 10px; padding-left: 12px; border-left: 3px solid #d6cffa; color: #555; }
+.mail-editor a { color: #6d59d8; text-decoration: underline; }
+.mail-editor mark { border-radius: 2px; padding: 0 1px; }
+.mail-editor p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: #a1bbe5; float: left; height: 0; pointer-events: none; }

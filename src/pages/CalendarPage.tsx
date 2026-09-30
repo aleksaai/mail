@@ -7,7 +7,7 @@ import {
 import { de } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { listEvents, type CalEvent } from '@/lib/calendar'
+import { listAllEvents, type CalEvent } from '@/lib/calendar'
 import { EventDialog, type EventDialogState } from '@/components/calendar/EventDialog'
 
 type View = 'day' | 'week' | 'month'
@@ -63,7 +63,7 @@ export function CalendarPage() {
 
   const events = useQuery({
     queryKey: ['events', range.from.toISOString(), range.to.toISOString()],
-    queryFn: () => listEvents(range.from, range.to),
+    queryFn: () => listAllEvents(range.from, range.to),
     refetchInterval: 60_000,
   })
   const refresh = () => qc.invalidateQueries({ queryKey: ['events'] })

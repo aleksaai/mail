@@ -7,6 +7,8 @@ export const SCOPES = [
   'Mail.Send',
   'Mail.Send.Shared',
   'Calendars.ReadWrite',
+  // info@aleksa.ai ist der Hauptkalender (Aleksa 30.09.2026) — freigegebenes Postfach.
+  'Calendars.ReadWrite.Shared',
   'MailboxSettings.Read',
 ]
 

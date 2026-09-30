@@ -65,14 +65,14 @@ export function EventDialog({ state, onClose, onChanged }: { state: EventDialogS
     const end = allDay ? combine(endDate || date, '00:00') : combine(endDate || date, to)
     if (!allDay && end <= start) { toast.error('Ende liegt vor dem Beginn'); return }
     const d: EventDraft = { subject: subject.trim(), start, end, isAllDay: allDay, location, body, attendees }
-    void run(() => (event ? updateEvent(event.id, d) : createEvent(d)), event ? 'Termin gespeichert' : 'Termin angelegt')
+    void run(() => (event ? updateEvent(event.id, d, event.owner) : createEvent(d)), event ? 'Termin gespeichert' : 'Termin angelegt')
   }
 
   const remove = () => {
     if (!event) return
     const who = event.attendees.length ? ` Die ${event.attendees.length} Teilnehmer bekommen eine Absage.` : ''
     if (!window.confirm(`„${event.subject}“ löschen?${who}`)) return
-    void run(() => deleteEvent(event.id), 'Termin gelöscht')
+    void run(() => deleteEvent(event.id, event.owner), 'Termin gelöscht')
   }
 
   return (
@@ -127,9 +127,9 @@ export function EventDialog({ state, onClose, onChanged }: { state: EventDialogS
           <div className="flex flex-wrap gap-2">
             {event && !editing && !event.isOrganizer && (
               <>
-                <Button variant="outline" disabled={busy} onClick={() => run(() => respond(event.id, 'decline'), 'Abgesagt')}>Ablehnen</Button>
-                <Button variant="outline" disabled={busy} onClick={() => run(() => respond(event.id, 'tentativelyAccept'), 'Mit Vorbehalt zugesagt')}>Vorbehalt</Button>
-                <Button disabled={busy} onClick={() => run(() => respond(event.id, 'accept'), 'Zugesagt')}>Annehmen</Button>
+                <Button variant="outline" disabled={busy} onClick={() => run(() => respond(event.id, 'decline', '', event.owner), 'Abgesagt')}>Ablehnen</Button>
+                <Button variant="outline" disabled={busy} onClick={() => run(() => respond(event.id, 'tentativelyAccept', '', event.owner), 'Mit Vorbehalt zugesagt')}>Vorbehalt</Button>
+                <Button disabled={busy} onClick={() => run(() => respond(event.id, 'accept', '', event.owner), 'Zugesagt')}>Annehmen</Button>
               </>
             )}
             {event && !editing && canEdit && <Button onClick={() => setEditing(true)}>Bearbeiten</Button>}

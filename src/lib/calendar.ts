@@ -26,6 +26,9 @@ export interface CalEvent {
   type: string
   webLink?: string
   calendarId?: string
+  /** Graph-Pfad des Postfachs, dem der Termin gehoert: 'me' oder 'users/info@aleksa.ai'. */
+  owner: string
+  iCalUId?: string
 }
 
 /** Graph-Wandzeit ('2026-09-28T09:00:00.0000000', Europe/Berlin) → Date. Der Browser laeuft in Mitteleuropa. */
@@ -36,11 +39,13 @@ export const wall = (d: Date) => {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`
 }
 
-const FIELDS = 'id,subject,start,end,isAllDay,location,bodyPreview,organizer,attendees,isOrganizer,responseStatus,showAs,isCancelled,seriesMasterId,type,webLink'
+const FIELDS = 'id,iCalUId,subject,start,end,isAllDay,location,bodyPreview,organizer,attendees,isOrganizer,responseStatus,showAs,isCancelled,seriesMasterId,type,webLink'
 
-function toEvent(e: any, calendarId?: string): CalEvent {
+function toEvent(e: any, calendarId?: string, owner = 'me'): CalEvent {
   return {
     id: e.id,
+    owner,
+    iCalUId: e.iCalUId,
     subject: e.subject || '(ohne Titel)',
     start: parse(e.start.dateTime),
     end: parse(e.end.dateTime),
@@ -66,20 +71,39 @@ export interface Calendar { id: string; name: string; color: string; hexColor?: 
 export const listCalendars = () =>
   graph<{ value: Calendar[] }>('/me/calendars?$select=id,name,color,hexColor,isDefaultCalendar,canEdit&$top=50').then(r => r.value)
 
+/**
+ * Hauptkalender ist info@aleksa.ai (Aleksa 30.09.2026) — dort legt April Termine mit Kanzleien an,
+ * und dort landen neue Termine aus der App. Angezeigt werden beide Kalender zusammen, damit auch
+ * die enneo-Termine aus Aleksas eigenem Kalender sichtbar bleiben.
+ */
+export const MAIN_CALENDAR = 'users/info@aleksa.ai'
+export const OWN_CALENDAR = 'me'
+const root = (owner: string) => `/${owner}`
+
+/** Beide Kalender, zusammengefuehrt. Termine, die in beiden stehen (Einladung), nur einmal — der aus info@ gewinnt. */
+export async function listAllEvents(from: Date, to: Date): Promise<CalEvent[]> {
+  const [main, own] = await Promise.all([
+    listEvents(from, to, undefined, MAIN_CALENDAR).catch(err => { console.warn('info@-Kalender nicht lesbar', err); return [] as CalEvent[] }),
+    listEvents(from, to, undefined, OWN_CALENDAR),
+  ])
+  const seen = new Set(main.map(e => e.iCalUId).filter(Boolean))
+  return [...main, ...own.filter(e => !e.iCalUId || !seen.has(e.iCalUId))].sort((a, b) => +a.start - +b.start)
+}
+
 /** Termine im Zeitraum, Serien bereits aufgeloest (calendarView). Folgeseiten werden mitgeladen. */
-export async function listEvents(from: Date, to: Date, calendarId?: string): Promise<CalEvent[]> {
-  const base = calendarId ? `/me/calendars/${calendarId}/calendarView` : '/me/calendarView'
+export async function listEvents(from: Date, to: Date, calendarId?: string, owner = OWN_CALENDAR): Promise<CalEvent[]> {
+  const base = calendarId ? `${root(owner)}/calendars/${calendarId}/calendarView` : `${root(owner)}/calendarView`
   let url: string | undefined = `${base}?startDateTime=${encodeURIComponent(wall(from))}&endDateTime=${encodeURIComponent(wall(to))}&$top=250&$orderby=start/dateTime&$select=${FIELDS}`
   const out: CalEvent[] = []
   while (url) {
     const r: { value: any[]; '@odata.nextLink'?: string } = await graph(url)
-    out.push(...r.value.map(e => toEvent(e, calendarId)))
+    out.push(...r.value.map(e => toEvent(e, calendarId, owner)))
     url = r['@odata.nextLink']
   }
   return out
 }
 
-export const getEvent = (id: string) => graph<any>(`/me/events/${encodeURIComponent(id)}?$select=${FIELDS},body`).then(e => toEvent(e))
+export const getEvent = (id: string, owner = OWN_CALENDAR) => graph<any>(`${root(owner)}/events/${encodeURIComponent(id)}?$select=${FIELDS},body`).then(e => toEvent(e, undefined, owner))
 
 export interface EventDraft {
   subject: string
@@ -105,14 +129,15 @@ function payload(d: EventDraft) {
   }
 }
 
-export const createEvent = (d: EventDraft, calendarId?: string) =>
-  graph(calendarId ? `/me/calendars/${calendarId}/events` : '/me/events', { method: 'POST', body: JSON.stringify(payload(d)) })
+/** Neue Termine gehen in den Hauptkalender info@aleksa.ai. */
+export const createEvent = (d: EventDraft, owner = MAIN_CALENDAR) =>
+  graph(`${root(owner)}/events`, { method: 'POST', body: JSON.stringify(payload(d)) })
 
-export const updateEvent = (id: string, d: EventDraft) =>
-  graph(`/me/events/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload(d)) })
+export const updateEvent = (id: string, d: EventDraft, owner = OWN_CALENDAR) =>
+  graph(`${root(owner)}/events/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(payload(d)) })
 
 /** Eigener Termin: loeschen (Teilnehmer bekommen eine Absage). Fremde Einladung: ablehnen statt loeschen. */
-export const deleteEvent = (id: string) => graph(`/me/events/${encodeURIComponent(id)}`, { method: 'DELETE' })
+export const deleteEvent = (id: string, owner = OWN_CALENDAR) => graph(`${root(owner)}/events/${encodeURIComponent(id)}`, { method: 'DELETE' })
 
-export const respond = (id: string, answer: 'accept' | 'tentativelyAccept' | 'decline', comment = '') =>
-  graph(`/me/events/${encodeURIComponent(id)}/${answer}`, { method: 'POST', body: JSON.stringify({ comment, sendResponse: true }) })
+export const respond = (id: string, answer: 'accept' | 'tentativelyAccept' | 'decline', comment = '', owner = OWN_CALENDAR) =>
+  graph(`${root(owner)}/events/${encodeURIComponent(id)}/${answer}`, { method: 'POST', body: JSON.stringify({ comment, sendResponse: true }) })

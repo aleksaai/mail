@@ -19,7 +19,7 @@ Nur Aleksa. Kein Mehrbenutzer, kein Teilen. Login nur mit seinem Microsoft-Konto
 | `Aleksa@spalevic-partner.com` | eigenes Postfach (Lizenz) | ✅ | ✅ |
 | `aleksa@spalevic-consulting.de`, später `aleksa@destinymedia.de`, `aleksa@pengoro.com` | Aliase im eigenen Postfach | ✅ (landen im selben Posteingang) | ✅ nach `Set-OrganizationConfig -SendFromAliasesEnabled $true` |
 | `info@aleksa.ai` | freigegebenes Postfach | ✅ | ✅ für Aleksa (braucht „Senden als“-Recht; April sendet von dort nie) |
-| `april@aleksa.ai` | freigegebenes Postfach (Aprils) | ✅ | nein — dort sendet April, Aleksa sieht mit |
+| `april@aleksa.ai` | freigegebenes Postfach (Aprils) | ✅ | ✅ für Aleksa seit 30.09.2026 (braucht „Senden als“-Recht auf april@); April selbst sendet über den Gateway |
 
 Domains `destinymedia.de` und `pengoro.com` müssen erst in den Mandanten (eigener Umzug, nicht Teil dieser App).
 

@@ -47,12 +47,14 @@ export const MAILBOXES: Mailbox[] = [
   {
     id: 'april',
     color: '#f59e0b',
-    sub: 'april@aleksa.ai · nur lesen',
+    sub: 'april@aleksa.ai',
     label: 'April',
     address: 'april@aleksa.ai',
     path: 'users/april@aleksa.ai',
-    from: [],
-    hint: 'Aprils Postfach — hier sendet sie selbst, du liest mit.',
+    // Seit 30.09.2026 darf Aleksa auch aus Aprils Postfach schreiben (braucht das Exchange-Recht
+    // „Senden als" auf april@, siehe HANDOFF). April selbst sendet weiter ueber den Gateway.
+    from: ['april@aleksa.ai'],
+    hint: 'Aprils Postfach — sie sendet hier selbst, du kannst auch von hier schreiben.',
   },
   {
     id: 'destinymedia',

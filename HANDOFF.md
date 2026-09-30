@@ -67,3 +67,4 @@ Kurzfassung (Details in den Nachträgen „2026-09-29“ weiter unten): Mail als
 - `mailboxes.ts`: April-Bereich `from: ['april@aleksa.ai']` statt nur lesen.
 - Braucht einmalig in Exchange (Cloud Shell, Aleksa): `Add-RecipientPermission april@aleksa.ai -AccessRights SendAs -Trustee Aleksa@spalevic-partner.com`. Ohne das Recht lehnt Graph das Senden mit `ErrorSendAsDenied` ab.
 - Mails, die Aleksa hier selbst schreibt, bekommen KEINE automatische April-Signatur (die setzt nur der Gateway bei `april_send_email`).
+- Signatur im Schreibfenster: `src/config/signatures.ts` (je Absenderadresse, aktuell nur april@). Vorschau unter dem Editor mit Schalter „Signatur anhängen“, beim Senden hinter den Text gehängt (bei Antworten vor dem Zitat). Nicht im Tiptap-Editor selbst, weil der Tabelle und Inline-Styles verwirft. Zweite Kopie im Gateway (`claude-team/gateway/src/mail-freigabe.ts`).

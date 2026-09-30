@@ -8,6 +8,7 @@ import { MailEditor } from './MailEditor'
 import { hasContent, toEmailHtml } from '@/lib/email-html'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { Mailbox } from '@/config/mailboxes'
+import { signatureFor } from '@/config/signatures'
 import { MAX_ATTACHMENT, sendNew, sendResponse, type Message } from '@/lib/graph'
 
 export type ComposeMode = { kind: 'new' } | { kind: 'reply' | 'replyAll' | 'forward'; message: Message }
@@ -24,6 +25,8 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
   const [sending, setSending] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const [dragging, setDragging] = useState(false)
+  const [withSig, setWithSig] = useState(true)
+  const signature = signatureFor(from)
   const picker = useRef<HTMLInputElement>(null)
 
   const addFiles = (list: FileList | File[] | null) => {
@@ -39,6 +42,7 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
     setHtml('')
     setEditorKey(k => k + 1)
     setFiles([])
+    setWithSig(true)
     if (mode.kind === 'new') { setTo(''); setCc(''); setSubject(''); setFrom(mb.from[0] ?? ''); return }
     const m = mode.message
     const own = new Set(mb.from.map(a => a.toLowerCase()))
@@ -58,7 +62,8 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
     if (!to.trim()) { toast.error('Empfänger fehlt'); return }
     setSending(true)
     try {
-      const d = { from, to, cc, subject, html: hasContent(html) ? toEmailHtml(html) : '', files }
+      const body = hasContent(html) ? toEmailHtml(html) : ''
+      const d = { from, to, cc, subject, html: signature && withSig ? `${body}<br>${signature}` : body, files }
       if (mode.kind === 'new') await sendNew(mb, d)
       else await sendResponse(mb, mode.message.id, mode.kind, d)
       toast.success('Gesendet')
@@ -92,6 +97,15 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
             <MailEditor key={editorKey} onChange={setHtml} onSubmit={() => void send()} autoFocus={mode.kind !== 'new'}
               placeholder={mode.kind === 'new' ? 'Schreib deine Nachricht …' : 'Deine Antwort, der bisherige Verlauf wird automatisch angehängt.'} />
           </div>
+          {signature && (
+            <div className="rounded-xl border border-line bg-white/60 px-3 pt-2 pb-3">
+              <label className="flex items-center gap-2 text-[12px] text-steel mb-2 cursor-pointer select-none">
+                <input type="checkbox" checked={withSig} onChange={e => setWithSig(e.target.checked)} className="accent-[#8b79f0]" />
+                Signatur anhängen
+              </label>
+              <div className={withSig ? '' : 'opacity-40'} dangerouslySetInnerHTML={{ __html: signature }} />
+            </div>
+          )}
           {files.length > 0 && (
             <div className="flex flex-wrap gap-2 pt-1">
               {files.map((f, n) => (

@@ -69,3 +69,8 @@ Kurzfassung (Details in den Nachträgen „2026-09-29“ weiter unten): Mail als
 - Mails, die Aleksa hier selbst schreibt, bekommen KEINE automatische April-Signatur (die setzt nur der Gateway bei `april_send_email`).
 - Signatur im Schreibfenster: `src/config/signatures.ts` (je Absenderadresse, aktuell nur april@). Vorschau unter dem Editor mit Schalter „Signatur anhängen“, beim Senden hinter den Text gehängt (bei Antworten vor dem Zitat). Nicht im Tiptap-Editor selbst, weil der Tabelle und Inline-Styles verwirft. Zweite Kopie im Gateway (`claude-team/gateway/src/mail-freigabe.ts`).
 - **Kalender (30.09.2026):** info@aleksa.ai ist der Hauptkalender. Die Kalenderseite zeigt info@ + Aleksas eigenen Kalender (enneo-Termine) zusammen (`listAllEvents`, doppelte per iCalUId entfernt), neue Termine gehen nach info@. Jeder Termin traegt `owner` (Graph-Pfad), Bearbeiten/Loeschen/Antworten laufen gegen das richtige Postfach. Braucht delegiert `Calendars.ReadWrite.Shared` — beim ersten Laden fragt Microsoft einmal nach Zustimmung.
+
+## 01.10.2026 — Tief verschachtelte Gmail-Weiterleitungen
+- Andys IBCB-Newsletter-Anfrage zeigte nur die erste Zeile: Er leitet jede Woche die Vorwochen-Mail weiter, Gmail packt jedes Mal neue `<div dir="ltr"><div class="gmail_quote">` drum, der Text lag auf Tiefe 514 (Browser-Grenze 512).
+- `flattenDeepNesting` in `HtmlFrame.tsx` (läuft in `prepareMailHtml`, also auch fürs PDF): erst ab Tiefe 100, entfernt nur stillose `div`-Hüllen, die genau ein weiteres `div` enthalten. Ergebnis bei Andys Mail: Tiefe 5, ganzer Text sichtbar.
+- Zum Nachprüfen kann die `microsoft-bridge` jetzt `mail/message` mit `format: "html"` liefern (Standard bleibt Text).

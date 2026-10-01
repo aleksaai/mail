@@ -1,8 +1,33 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+/**
+ * Gmail packt bei jedem Weiterleiten den alten Inhalt in neue <div dir="ltr"><div class="gmail_quote">.
+ * Nach ein paar Dutzend Runden liegt der Text ueber 512 Ebenen tief, und ab dort stellen Browser ihn
+ * nicht mehr dar (IBCB-Newsletter 01.10.2026: nur die erste Zeile sichtbar). Leere Huellen ohne
+ * eigenen Stil, die nur ein weiteres div enthalten, fallen deshalb weg. Greift erst ab Tiefe 100.
+ */
+function flattenDeepNesting(html: string) {
+  if ((html.match(/<div/gi)?.length ?? 0) < 100) return html
+  const doc = new DOMParser().parseFromString(html, 'text/html')
+  let max = 0
+  const walk = (el: Element, d: number) => { if (d > max) max = d; for (const c of el.children) walk(c, d + 1) }
+  walk(doc.body, 0)
+  if (max < 100) return html
+  const plain = (el: Element) => el.tagName === 'DIV' && !el.hasAttribute('style') && [...el.attributes].every(a => a.name === 'dir' || a.name === 'class')
+  const onlyChild = (el: Element) => {
+    const nodes = [...el.childNodes].filter(n => !(n.nodeType === Node.TEXT_NODE && !n.textContent?.trim()))
+    return nodes.length === 1 && nodes[0] instanceof Element && nodes[0].tagName === 'DIV' ? nodes[0] : null
+  }
+  for (const el of [...doc.body.querySelectorAll('div')]) {
+    const child = onlyChild(el)
+    if (child && plain(el)) el.replaceWith(child)
+  }
+  return doc.head.innerHTML + doc.body.innerHTML
+}
+
 /** cid-Bilder einsetzen, externe Bilder ohne Freigabe entschaerfen, passende CSP (keine Skripte) liefern. */
 export function prepareMailHtml(html: string, inline: Record<string, string>, allowRemote: boolean) {
-  let body = html.replace(/cid:([^"'\s)>]+)/gi, (m, id) => inline[id] ?? m)
+  let body = flattenDeepNesting(html).replace(/cid:([^"'\s)>]+)/gi, (m, id) => inline[id] ?? m)
   if (!allowRemote) body = body.replace(/(<img[^>]+?)\ssrc=(["'])(https?:[^"']+)\2/gi, '$1 data-remote-src=$2$3$2')
   const csp = allowRemote
     ? "default-src 'none'; img-src * data:; style-src 'unsafe-inline' *; font-src *;"

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { Paperclip, X } from 'lucide-react'
+import { Languages, Paperclip, Sparkles, Undo2, X } from 'lucide-react'
+import { askApril, cleanAprilHtml, LANGUAGES, type LanguageId } from '@/lib/april'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -26,7 +27,35 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
   const [files, setFiles] = useState<File[]>([])
   const [dragging, setDragging] = useState(false)
   const [withSig, setWithSig] = useState(true)
+  const [initial, setInitial] = useState('')
+  const [instruction, setInstruction] = useState('')
+  const [target, setTarget] = useState<LanguageId>('en')
+  const [aprilBusy, setAprilBusy] = useState<'' | 'improve' | 'translate'>('')
+  const [before, setBefore] = useState<string | null>(null)
   const signature = signatureFor(from)
+
+  // April schreibt den Entwurf neu; der Editor wird mit dem Ergebnis neu aufgebaut.
+  const replaceBody = (next: string) => {
+    setBefore(html)
+    setHtml(next); setInitial(next); setEditorKey(k => k + 1)
+  }
+  const runApril = async (kind: 'improve' | 'translate') => {
+    if (!hasContent(html)) { toast.error('Schreib zuerst etwas, dann hilft April'); return }
+    setAprilBusy(kind)
+    try {
+      const out = kind === 'translate'
+        ? await askApril({ action: 'translate', text: html, target, format: 'html' })
+        : await askApril({ action: 'improve', text: html, instruction })
+      replaceBody(cleanAprilHtml(out))
+      if (kind === 'improve') setInstruction('')
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally { setAprilBusy('') }
+  }
+  const undoApril = () => {
+    if (before === null) return
+    setHtml(before); setInitial(before); setEditorKey(k => k + 1); setBefore(null)
+  }
   const picker = useRef<HTMLInputElement>(null)
 
   const addFiles = (list: FileList | File[] | null) => {
@@ -40,6 +69,9 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
   useEffect(() => {
     if (!open) return
     setHtml('')
+    setInitial('')
+    setBefore(null)
+    setInstruction('')
     setEditorKey(k => k + 1)
     setFiles([])
     setWithSig(true)
@@ -94,8 +126,31 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
           <div className="flex items-center gap-2"><span className="w-12 text-sm text-steel">Cc</span><Input value={cc} onChange={e => setCc(e.target.value)} /></div>
           <div className="flex items-center gap-2"><span className="w-12 text-sm text-steel">Betreff</span><Input value={subject} onChange={e => setSubject(e.target.value)} /></div>
           <div className="mt-2">
-            <MailEditor key={editorKey} onChange={setHtml} onSubmit={() => void send()} autoFocus={mode.kind !== 'new'}
+            <MailEditor key={editorKey} initialHtml={initial} onChange={setHtml} onSubmit={() => void send()} autoFocus={mode.kind !== 'new' || !!initial}
               placeholder={mode.kind === 'new' ? 'Schreib deine Nachricht …' : 'Deine Antwort, der bisherige Verlauf wird automatisch angehängt.'} />
+          </div>
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-line bg-white/60 px-3 py-2">
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-indigo2-700"><Sparkles className="h-3.5 w-3.5" />April</span>
+            <input value={instruction} onChange={e => setInstruction(e.target.value)} disabled={!!aprilBusy}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void runApril('improve') } }}
+              placeholder="Was soll ich ändern? Leer = Fehler korrigieren"
+              className="h-8 min-w-[180px] flex-1 rounded-md border border-line bg-white/80 px-2 text-[13px] outline-none focus:border-indigo2-500" />
+            <Button size="sm" variant="ghost" disabled={!!aprilBusy} onClick={() => void runApril('improve')}>
+              {aprilBusy === 'improve' ? 'Überarbeitet …' : 'Überarbeiten'}
+            </Button>
+            <span className="h-5 w-px bg-line" />
+            <select value={target} onChange={e => setTarget(e.target.value as LanguageId)} disabled={!!aprilBusy}
+              className="h-8 rounded-md bg-transparent px-1 text-[13px] text-asphalt outline-none hover:bg-ice cursor-pointer" title="Zielsprache">
+              {LANGUAGES.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
+            </select>
+            <Button size="sm" variant="ghost" disabled={!!aprilBusy} onClick={() => void runApril('translate')}>
+              <Languages className="mr-1.5 h-4 w-4" />{aprilBusy === 'translate' ? 'Übersetzt …' : 'Übersetzen'}
+            </Button>
+            {before !== null && !aprilBusy && (
+              <button type="button" onClick={undoApril} className="inline-flex items-center gap-1 text-[12px] text-steel hover:text-asphalt">
+                <Undo2 className="h-3.5 w-3.5" />Rückgängig
+              </button>
+            )}
           </div>
           {signature && (
             <div className="rounded-xl border border-line bg-white/60 px-3 pt-2 pb-3">

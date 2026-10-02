@@ -74,3 +74,10 @@ Kurzfassung (Details in den Nachträgen „2026-09-29“ weiter unten): Mail als
 - Andys IBCB-Newsletter-Anfrage zeigte nur die erste Zeile: Er leitet jede Woche die Vorwochen-Mail weiter, Gmail packt jedes Mal neue `<div dir="ltr"><div class="gmail_quote">` drum, der Text lag auf Tiefe 514 (Browser-Grenze 512).
 - `flattenDeepNesting` in `HtmlFrame.tsx` (läuft in `prepareMailHtml`, also auch fürs PDF): erst ab Tiefe 100, entfernt nur stillose `div`-Hüllen, die genau ein weiteres `div` enthalten. Ergebnis bei Andys Mail: Tiefe 5, ganzer Text sichtbar.
 - Zum Nachprüfen kann die `microsoft-bridge` jetzt `mail/message` mit `format: "html"` liefern (Standard bleibt Text).
+
+## 02.10.2026 — April im Postfach: übersetzen und überarbeiten
+- Schreibfenster: Leiste „April“ unter dem Editor. Freitext-Anweisung + „Überarbeiten“ (leer = Fehler korrigieren, schreibt in Aleksas Stil aus `wiki/aleksa-writing-style.md`), Sprachwahl + „Übersetzen“. Ergebnis ersetzt den Entwurf, „Rückgängig“ holt den alten Stand zurück. Signatur und Zitat bleiben unberührt.
+- Lesen: Übersetzen-Symbol in der Aktionsleiste, Übersetzung erscheint als Karte über der Mail, Sprache dort umschaltbar.
+- Technik: `src/lib/april.ts` → Gateway `POST /api/mail-hilfe` (`claude-team/gateway/src/mail-hilfe.ts`). Nachweis = Aleksas Graph-Token, der Gateway prüft per `/me` gegen `aleksa@spalevic-partner.com`, CORS nur `mail.aleksa.ai` + localhost:5173. Reiner Modellaufruf (claude-sonnet-5), keine Werkzeuge, nichts wird gesendet. Verbrauch landet als patricia/web/mail-app in `agent_messages`.
+- Optional `VITE_GATEWAY_URL` (Standard: aleksa-ai-team-production.up.railway.app).
+- Ergebnis-HTML wird vor dem Einsetzen auf die Editor-Tags reduziert (`cleanAprilHtml`).

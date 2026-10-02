@@ -5,7 +5,7 @@ import { format, isToday, isThisYear, isYesterday } from 'date-fns'
 import { de } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { motion } from 'motion/react'
-import { Archive, ArrowLeft, Menu, FileDown, Forward, Image, Mail, MailOpen, Paperclip, PenSquare, Reply, ReplyAll, Search, Trash2, X } from 'lucide-react'
+import { Archive, ArrowLeft, Menu, FileDown, Forward, Image, Languages, Mail, MailOpen, Paperclip, PenSquare, Reply, ReplyAll, Search, Sparkles, Trash2, X } from 'lucide-react'
 import { FOLDERS, INBOX_BOXES, PRIMARY_MAILBOX, mailboxById, type Mailbox } from '@/config/mailboxes'
 import { attachmentBlob, getMessage, lastVerb, sentInConversation, inlineImages, listAttachments, listMessages, moveMessage, updateMessage, type MessageSummary } from '@/lib/graph'
 import { HtmlFrame } from '@/components/mail/HtmlFrame'
@@ -14,6 +14,16 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { saveMessageAsPdf } from '@/lib/pdf'
 import { useLiquidGlass } from '@/lib/liquid-glass'
 import { openMenu } from '@/components/Shell'
+import { askApril, LANGUAGES, type LanguageId } from '@/lib/april'
+
+/** Lesbarer Text einer Mail für April: Zeilenumbrüche aus dem HTML erhalten, Stile und Skripte weg. */
+function mailText(subject: string, html: string): string {
+  const marked = html.replace(/<br\s*\/?>/gi, '\n').replace(/<\/(p|div|li|tr|h[1-6]|blockquote)>/gi, '\n')
+  const doc = new DOMParser().parseFromString(marked, 'text/html')
+  doc.querySelectorAll('style,script,head').forEach(n => n.remove())
+  const body = (doc.body.textContent ?? '').replace(/[ \t\u00a0]+/g, ' ').replace(/\n\s*\n\s*\n+/g, '\n\n').trim()
+  return `Betreff: ${subject || '(kein Betreff)'}\n\n${body}`.slice(0, 60_000)
+}
 
 /** "Alle Posteingänge": eigener Pseudo-Bereich, der die Posteingaenge von INBOX_BOXES zusammenfuehrt. */
 const ALL = 'alle'
@@ -241,6 +251,10 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
   const qc = useQueryClient()
   const [remote, setRemote] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  // April übersetzt die gelesene Mail; null = keine Übersetzung offen.
+  const [translation, setTranslation] = useState<{ lang: LanguageId; text: string } | null>(null)
+  const [translating, setTranslating] = useState<LanguageId | null>(null)
+  useEffect(() => { setTranslation(null); setTranslating(null) }, [mb.id, id])
   const bar = useLiquidGlass()
   const msg = useQuery({ queryKey: ['message', mb.id, id], queryFn: () => getMessage(mb, id) })
   const atts = useQuery({ queryKey: ['atts', mb.id, id], queryFn: () => listAttachments(mb, id), enabled: !!msg.data?.hasAttachments })
@@ -283,6 +297,15 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
   const answered = folder !== 'sentitems' && folder !== 'drafts' && (mine.length > 0 || !!verb)
   const latest = mine[0]
 
+  const translate = async (lang: LanguageId) => {
+    setTranslating(lang)
+    try {
+      const text = await askApril({ action: 'translate', text: mailText(m.subject, html), target: lang, format: 'text' })
+      setTranslation({ lang, text })
+    } catch (e) { toast.error((e as Error).message) }
+    finally { setTranslating(null) }
+  }
+
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       {/* Schwebende Glas-Kapsel mit den Aktionen */}
@@ -299,6 +322,8 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
           {folder !== 'deleteditems' && <button className={`${btn} hover:!text-destructive`} title="Löschen" onClick={() => onAct(() => moveMessage(mb, id, 'deleteditems'), 'In den Papierkorb verschoben')}><Trash2 className="h-4 w-4" /></button>}
           <button className={btn} title="Als ungelesen markieren" onClick={() => onAct(() => updateMessage(mb, id, { isRead: false }), 'Als ungelesen markiert')}><MailOpen className="h-4 w-4" /></button>
           <span className="mx-1 h-5 w-px bg-asphalt/10" />
+          <button className={btn} title="Von April ins Deutsche übersetzen lassen" disabled={!!translating}
+            onClick={() => void translate(translation?.lang ?? 'de')}><Languages className="h-4 w-4" /></button>
           <button className={btn} title="Als PDF speichern" disabled={inline.isLoading || atts.isLoading}
             onClick={() => saveMessageAsPdf(m, html, { inline: inline.data ?? {}, allowRemote: remote, attachments: atts.data ?? [] })}><FileDown className="h-4 w-4" /></button>
         </div>
@@ -348,6 +373,22 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
             <button onClick={() => setRemote(true)} className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white/50 px-3 py-1 text-[12px] text-steel hover:text-asphalt">
               <Image className="h-3.5 w-3.5" />Externe Bilder blockiert, anzeigen
             </button>
+          )}
+          {(translating || translation) && (
+            <div className="mail-card mt-5 px-5 py-4">
+              <div className="mb-3 flex flex-wrap items-center gap-2 text-[12px] text-steel">
+                <span className="inline-flex items-center gap-1.5 font-semibold text-indigo2-700"><Sparkles className="h-3.5 w-3.5" />Übersetzung von April</span>
+                <select value={translating ?? translation?.lang ?? 'de'} disabled={!!translating}
+                  onChange={e => void translate(e.target.value as LanguageId)}
+                  className="h-7 rounded-md bg-transparent px-1 text-[12px] text-asphalt outline-none hover:bg-ice cursor-pointer">
+                  {LANGUAGES.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
+                </select>
+                <button onClick={() => { setTranslation(null); setTranslating(null) }} className="ml-auto hover:text-asphalt" title="Übersetzung schließen"><X className="h-4 w-4" /></button>
+              </div>
+              {translating
+                ? <div className="space-y-2"><Skeleton className="h-3 w-5/6 bg-white/70" /><Skeleton className="h-3 w-2/3 bg-white/70" /><Skeleton className="h-3 w-3/4 bg-white/70" /></div>
+                : <div className="whitespace-pre-wrap text-[14.5px] leading-relaxed text-ink">{translation?.text}</div>}
+            </div>
           )}
           <div className="mail-card mt-5">
             <HtmlFrame html={html} inline={inline.data ?? {}} allowRemote={remote} />

@@ -53,7 +53,19 @@ Systemanweisung und Gedächtnis werden gecacht (`cache_control`), pro Klick komm
 
 ## 6. Die animierte April
 
-Ziel: Sie wirkt wie eine Helferin, die mitarbeitet, und nicht wie ein Logo. Es gibt drei Wege:
+**Festgelegt 02.10.2026:** April ist das lila Plüsch-Wesen mit der cremefarbenen Schleife (Bild von Aleksa, liegt als `public/april/april.png`). Sie hat keine Arme und keinen Mund. Gesten wie Zeigen oder Tippen passen deshalb nicht. Ihr Ausdruck kommt aus **Körper, Augen und Schleife**:
+
+| Zustand | Bewegung |
+|---|---|
+| `idle` | atmet langsam (Skalierung 1 → 1,02), blinzelt alle 4–7 s zufällig |
+| `thinking` | Augen wandern zur Seite und zurück, leichtes Neigen, die Schleife wippt, sanfter lila Schimmer drumherum |
+| `writing` | kleines rhythmisches Hüpfen im Takt der gestreamten Wörter |
+| `done` | Squash-and-Stretch-Hüpfer, Schleife schnippt nach, kurz „glückliche“ Augen (Bögen) |
+| `wave` | schaut von der Seite herein, wackelt kurz hin und her |
+
+Umsetzung: Körper und Schleife als zwei freigestellte Ebenen, die Augen als eigene SVG-Ebene. So blinzeln und schauen sie per Motion, ohne für jede Pose ein neues Bild zu brauchen. Freistellen und Ebenen erzeuge ich aus dem Original. Ein zweites Bild „Augen zu / glücklich“ entsteht mit dem Bildgenerator im selben Stil.
+
+Die drei Wege von vorher gelten weiter, A ist jetzt aber deutlich stärker, weil die Figur sich gut für Squash-and-Stretch eignet:
 
 | Weg | Wie | Pro | Contra |
 |---|---|---|---|
@@ -109,8 +121,12 @@ Vorschlag: A jetzt bauen und B später für zwei Momente nachrüsten (Begrüßun
 
 Automatisches Senden, Antworten im enneo-Postfach, Mails im Hintergrund lesen ohne Öffnen (außer Phase 3 für info@), Sprachausgabe, eine Rive-Figur (Weg C) ohne Designer.
 
-## 11. Offene Fragen an Aleksa
+## 11. Entscheidungen und offene Fragen
 
-1. Welches Bild ist „die April“, also das Bild, aus dem die Posen entstehen sollen?
-2. Für welche Postfächer soll es laufen: info@, persönlich, Consulting, auch das April-Postfach?
-3. Phase 3 (Vorschläge schon vorab erzeugen) bedeutet, dass kurze Entwürfe in Supabase liegen. Ist das in Ordnung?
+**Entschieden 02.10.2026:**
+1. Bild: das lila Plüsch-Wesen mit Schleife (siehe §6).
+2. Postfächer: `info@aleksa.ai`, `aleksa@spalevic-partner.com` und `aleksa@spalevic-consulting.de`. Die Consulting-Adresse ist ein Alias im persönlichen Postfach. Es ist also derselbe Posteingang, April erkennt aber an der Empfängeradresse, ob es um Consulting geht, und antwortet von dieser Adresse. Archiv DestinyMedia und das April-Postfach bleiben ohne Vorschläge.
+
+3. Vorab-Vorschläge (Phase 3): erlaubt. Kurze Entwürfe dürfen in Supabase liegen, nur für die drei Postfächer oben. Sie werden nach 14 Tagen oder sobald die Mail beantwortet ist gelöscht.
+
+Alle Fragen sind geklärt. Die Spec wartet nur noch auf das Go zum Bauen.

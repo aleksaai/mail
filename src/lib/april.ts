@@ -22,11 +22,18 @@ type Request =
 
 export async function askApril(req: Request): Promise<string> {
   const token = await getToken()
-  const r = await fetch(`${GATEWAY}/api/mail-hilfe`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify(req),
-  })
+  const t0 = Date.now()
+  let r: Response
+  try {
+    r = await fetch(`${GATEWAY}/api/mail-hilfe`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    })
+  } catch (e) {
+    // Netzwerkfehler ohne Antwort ("Load failed"): Dauer mitgeben, damit man die Anfrage im Gateway-Trace findet.
+    throw new Error(`Keine Verbindung zu April nach ${Math.round((Date.now() - t0) / 100) / 10}s (${(e as Error).message})`)
+  }
   const data = await r.json().catch(() => ({})) as { result?: string; error?: string }
   if (!r.ok || !data.result) throw new Error(data.error || `April antwortet nicht (${r.status})`)
   return data.result

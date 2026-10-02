@@ -15,6 +15,11 @@ import { saveMessageAsPdf } from '@/lib/pdf'
 import { useLiquidGlass } from '@/lib/liquid-glass'
 import { openMenu } from '@/components/Shell'
 import { askApril, LANGUAGES, type LanguageId } from '@/lib/april'
+import { APRIL_BOXES } from '@/lib/april-context'
+import { AprilCard } from '@/components/april/AprilCard'
+
+/** In diesen Ordnern schlägt April nichts vor. */
+const APRIL_SKIP_FOLDERS = new Set(['sentitems', 'drafts', 'junkemail', 'deleteditems'])
 
 /** Lesbarer Text einer Mail für April: Zeilenumbrüche aus dem HTML erhalten, Stile und Skripte weg. */
 function mailText(subject: string, html: string): string {
@@ -389,6 +394,10 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
                 ? <div className="space-y-2"><Skeleton className="h-3 w-5/6 bg-white/70" /><Skeleton className="h-3 w-2/3 bg-white/70" /><Skeleton className="h-3 w-3/4 bg-white/70" /></div>
                 : <div className="whitespace-pre-wrap text-[14.5px] leading-relaxed text-ink">{translation?.text}</div>}
             </div>
+          )}
+          {APRIL_BOXES.has(mb.id) && !APRIL_SKIP_FOLDERS.has(folder) && (
+            <AprilCard mb={mb} message={m} canSend={canSend}
+              onInsert={startHtml => onCompose({ kind: 'reply', message: m, startHtml })} />
           )}
           <div className="mail-card mt-5">
             <HtmlFrame html={html} inline={inline.data ?? {}} allowRemote={remote} />

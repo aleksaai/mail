@@ -1,5 +1,14 @@
 # HANDOFF — mail
 
+### Was wurde in dieser Session gemacht (2026-10-02): April schlägt Antworten vor, Phase 1
+Spec: `docs/SPEC-april-vorschlaege.md` (freigegeben). Gateway-Teil liegt in claude-team `gateway/src/mail-vorschlag.ts` + `mail-hilfe.ts` (Aktionen `brief` per Haiku als JSON, `draft` per Sonnet als SSE, Aprils Gedächtnis gecacht), Commit 4a1f0ca, Tests `mail-vorschlag.test.ts` grün.
+- `src/lib/april-context.ts`: Mail-Text (Zitate abgeschnitten), letzte 5 Mails der Unterhaltung, letzte 3 gesendete Mails an den Absender (andere Unterhaltungen), belegte Zeiten aus beiden Kalendern der nächsten 14 Tage (ohne Titel). Jede Quelle darf einzeln ausfallen. `APRIL_BOXES` = info, aleksa, consulting.
+- `src/lib/april.ts`: `brief()` (Ergebnis je Mail-ID in sessionStorage), `draft()` mit SSE-Leser + Abbruch, Entwurf je Mail+Absicht ebenfalls im sessionStorage.
+- `src/components/april/AprilCard.tsx`: Glas-Karte über dem Mail-Text, Zusammenfassung + Frist, Chips, gestreamter Entwurf, Einsetzen / Kürzer / Förmlicher / Lockerer / Sprache / Neu / Freitext, zuklappbar je Mail. `AprilOrb` = Platzhalter-Avatar (Leuchtkreis), Zustände idle/thinking/writing/done, respektiert reduzierte Bewegung. Phase 2 ersetzt ihn durch die Plüsch-April.
+- `Compose.tsx`: `ComposeMode.startHtml` als Starttext; Platzhalter `[..?]` werden gelb markiert, vor dem Senden kommt eine Rückfrage, solange noch einer drin steht.
+- Nicht in Sent/Entwürfe/Junk/Gelöscht. Nichts wird automatisch gesendet.
+- Noch nicht mit echtem Login getestet (Container hat kein MSAL-Login). Offen aus der Spec: Abschalten für ganze Absender/Ordner.
+
 ### Was wurde in dieser Session gemacht (2026-09-29)
 Kurzfassung (Details in den Nachträgen „2026-09-29“ weiter unten): Mail als PDF (Druckdialog), info@ oben + Start + andere Postfächer zugeklappt, formatiertes Schreiben mit empfängerfestem HTML, Liquid-Glass-Look (Randbrechung per SVG-Filter in Chromium, Glas-Lehren zu verschachteltem backdrop-filter und iframe), „Alle Posteingänge“, Beantwortet-Hinweis, dezente Schnellaktionen. Lokale Testseite ohne Login: `npm run dev` → `http://localhost:5173/ui-test.html?p=/mail/info/inbox/info-1` (Dateien `ui-test.html/.tsx` sind gitignored, liegen nur auf der MacBook home).
 **Offen bei Aleksa:** formatierte Mail an Gmail prüfen, Beantwortet-Pfeil nach neuer Antwort prüfen, sagen welcher Browser (Brechung nur Chrome/Edge/Arc). Danach Stufe 2 (Relevant/Sonstige, Unterhaltungen, Mehrfachauswahl, Wischen, Drag and Drop, Später erinnern) oder Stufe 3 (April im Postfach über Gateway).

@@ -12,7 +12,13 @@ import type { Mailbox } from '@/config/mailboxes'
 import { signatureFor } from '@/config/signatures'
 import { MAX_ATTACHMENT, sendNew, sendResponse, type Message } from '@/lib/graph'
 
-export type ComposeMode = { kind: 'new' } | { kind: 'reply' | 'replyAll' | 'forward'; message: Message }
+/** `startHtml`: Starttext im Editor, z. B. Aprils Entwurf (Signatur und Zitat kommen wie gewohnt dazu). */
+export type ComposeMode = { kind: 'new' } | { kind: 'reply' | 'replyAll' | 'forward'; message: Message; startHtml?: string }
+
+/** Aprils Platzhalter wie [Uhrzeit?] gelb markieren, damit sie vor dem Senden auffallen. */
+const PLACEHOLDER = /\[[^\]\n]{1,60}\?\]/g
+export const markPlaceholders = (html: string) =>
+  html.replace(PLACEHOLDER, p => `<mark data-color="#fde68a" style="background-color:#fde68a">${p}</mark>`)
 
 const addr = (list?: { emailAddress: { address: string } }[]) => (list ?? []).map(r => r.emailAddress.address)
 
@@ -88,10 +94,16 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
       setCc(mode.kind === 'replyAll' ? [...addr(m.toRecipients), ...addr(m.ccRecipients)].filter(a => !own.has(a.toLowerCase()) && !sender.includes(a)).join(', ') : '')
       setSubject(/^(AW|RE):/i.test(m.subject) ? m.subject : `AW: ${m.subject}`)
     }
+    if (mode.startHtml) {
+      const start = markPlaceholders(cleanAprilHtml(mode.startHtml))
+      setHtml(start); setInitial(start)
+    }
   }, [open, mode, mb])
 
   const send = async () => {
     if (!to.trim()) { toast.error('Empfänger fehlt'); return }
+    const left = (new DOMParser().parseFromString(html, 'text/html').body.textContent ?? '').match(PLACEHOLDER)
+    if (left?.length && !window.confirm(`Im Text steht noch ${left.length === 1 ? 'ein Platzhalter' : `${left.length} Platzhalter`}: ${left.join(', ')}. Trotzdem senden?`)) return
     setSending(true)
     try {
       const body = hasContent(html) ? toEmailHtml(html) : ''

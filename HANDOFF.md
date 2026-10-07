@@ -72,6 +72,10 @@ Kurzfassung (Details in den Nachträgen „2026-09-29“ weiter unten): Mail als
 3. Echter Login-Test, dann Phase 2 Kalender.
 
 
+### Was wurde in dieser Session gemacht (2026-10-07, abends, aus claude-team)
+- **Geplanter Versand gegen echtes Exchange bestätigt:** Die `microsoft-bridge` (claude-team) kann jetzt `sendAt` (gleiche Eigenschaft `SystemTime 0x3FEF`). Test aus april@: geplant 17:16:38, angekommen 17:16:44. Punkt (a) aus „Senden planen“ ist damit belegt.
+- **32 Kanzlei-Anfragen (NAV-Sitzwechsel) liegen in april@ unter „Geplant“** (08.10., 09.10., 12.10. je ab 09:00). Echter Test für „Doch nicht senden“ steht noch aus — wenn Welle 3 am 12.10. abgebrochen wird, danach prüfen, dass sie nicht rausgeht.
+
 ## 30.09.2026 — Senden aus Aprils Postfach
 - `mailboxes.ts`: April-Bereich `from: ['april@aleksa.ai']` statt nur lesen.
 - Braucht einmalig in Exchange (Cloud Shell, Aleksa): `Add-RecipientPermission april@aleksa.ai -AccessRights SendAs -Trustee Aleksa@spalevic-partner.com`. Ohne das Recht lehnt Graph das Senden mit `ErrorSendAsDenied` ab.

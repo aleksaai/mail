@@ -7,11 +7,11 @@ import { Archive, CalendarDays, ChevronRight, Clock, FileText, Inbox, Layers, Lo
 import { useBackdrop } from '@/lib/background'
 import { BackdropPicker } from './BackdropPicker'
 import { FOLDERS, INBOX_BOXES, MAILBOXES, PRIMARY_MAILBOX, type Mailbox } from '@/config/mailboxes'
-import { folderInfo } from '@/lib/graph'
+import { folderInfo, listMessages } from '@/lib/graph'
 import logo from '@/assets/aleksa-brand-logo.png'
 
 const ICONS: Record<string, typeof Inbox> = {
-  inbox: Inbox, drafts: FileText, outbox: Clock, sentitems: Send, archive: Archive, junkemail: ShieldAlert, deleteditems: Trash2,
+  inbox: Inbox, drafts: FileText, geplant: Clock, sentitems: Send, archive: Archive, junkemail: ShieldAlert, deleteditems: Trash2,
 }
 
 const itemBase = 'relative flex items-center gap-2.5 h-8 rounded-[10px] px-2.5 text-[13px] text-asphalt/75 hover:text-asphalt transition-colors overflow-hidden whitespace-nowrap'
@@ -22,8 +22,14 @@ function ActivePill() {
 }
 
 function useUnread(mb: Mailbox, folder: string) {
-  const { data } = useQuery({ queryKey: ['folder', mb.id, folder], queryFn: () => folderInfo(mb, folder), refetchInterval: 60_000 })
-  return folder === 'drafts' || folder === 'outbox' ? data?.totalItemCount : data?.unreadItemCount
+  // „Geplant“ ist kein Graph-Ordner: zaehlen, was die Liste liefern wuerde.
+  const scheduled = folder === 'geplant'
+  const { data } = useQuery({
+    queryKey: scheduled ? ['scheduled-count', mb.id] : ['folder', mb.id, folder],
+    queryFn: scheduled ? async () => ({ totalItemCount: (await listMessages(mb, 'geplant')).value.length, unreadItemCount: 0 }) : () => folderInfo(mb, folder),
+    refetchInterval: 60_000,
+  })
+  return folder === 'drafts' || scheduled ? data?.totalItemCount : data?.unreadItemCount
 }
 
 function Count({ n, strong }: { n?: number; strong?: boolean }) {
@@ -86,7 +92,7 @@ function FolderLink({ mb, folder, label }: { mb: Mailbox; folder: string; label:
       {active && <ActivePill />}
       <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-indigo2-700' : ''}`} />
       <span className="truncate">{label}</span>
-      {(folder === 'inbox' || folder === 'drafts' || folder === 'outbox') && <Count n={n} strong={folder === 'inbox' && active} />}
+      {(folder === 'inbox' || folder === 'drafts' || folder === 'geplant') && <Count n={n} strong={folder === 'inbox' && active} />}
     </NavLink>
   )
 }

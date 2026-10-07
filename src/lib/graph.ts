@@ -78,8 +78,8 @@ export function scheduledFor(m: MessageSummary): Date | null {
   const d = new Date(v)
   return isNaN(d.getTime()) ? null : d
 }
-/** Ordner der geplanten Mails (Graph-Name des Postausgangs). */
-export const SCHEDULED_FOLDER = 'outbox'
+/** Pseudo-Ordner „Geplant“ in der URL. Die Mails selbst liegen bei Exchange in den Entwuerfen. */
+export const SCHEDULED_FOLDER = 'geplant'
 
 export type Verb = 'reply' | 'replyAll' | 'forward'
 export function lastVerb(m: MessageSummary): { kind: Verb } | null {
@@ -102,13 +102,24 @@ export async function listMessages(mb: Mailbox, folder: string, opts: { next?: s
     const q = encodeURIComponent(`"${opts.search.replace(/"/g, '')}"`)
     return graph<{ value: MessageSummary[]; '@odata.nextLink'?: string }>(`${root(mb)}/messages?$search=${q}&$top=40&$select=${SUMMARY_FIELDS}`)
   }
-  if (folder === SCHEDULED_FOLDER) {
-    // Postausgang: nur geplante Mails, mit ihrem Sendezeitpunkt; ohne $expand, falls Graph ihn ablehnt.
-    const url = `${root(mb)}/mailFolders/${folder}/messages?$top=40&$select=${SUMMARY_FIELDS}`
-    try { return await graph<{ value: MessageSummary[]; '@odata.nextLink'?: string }>(`${url}&${EXPAND_DEFERRED}`) }
-    catch { return graph<{ value: MessageSummary[]; '@odata.nextLink'?: string }>(url) }
+  if (folder === SCHEDULED_FOLDER || folder === 'drafts') {
+    // Exchange haelt geplante Mails im Ordner Entwuerfe (wie Outlook im Web), nicht im Postausgang.
+    // Deshalb: Entwuerfe mit Sendezeitpunkt laden und aufteilen — „Geplant“ zeigt nur die mit Zeitpunkt in
+    // der Zukunft, „Entwürfe“ alle anderen. Lehnt Graph den $expand ab, bleibt „Geplant“ leer und Entwuerfe vollstaendig.
+    const url = `${root(mb)}/mailFolders/drafts/messages?$top=${folder === SCHEDULED_FOLDER ? 100 : 40}&$orderby=${encodeURIComponent('lastModifiedDateTime desc')}&$select=${SUMMARY_FIELDS}`
+    let r: { value: MessageSummary[]; '@odata.nextLink'?: string }
+    let expanded = true
+    try { r = await graph(`${url}&${EXPAND_DEFERRED}`) }
+    catch { r = await graph(url); expanded = false }
+    const now = Date.now()
+    const planned = (m: MessageSummary) => { const d = scheduledFor(m); return !!d && d.getTime() > now }
+    if (folder === SCHEDULED_FOLDER) {
+      const value = expanded ? r.value.filter(planned).sort((a, b) => scheduledFor(a)!.getTime() - scheduledFor(b)!.getTime()) : []
+      return { value }
+    }
+    return { value: expanded ? r.value.filter(m => !planned(m)) : r.value, '@odata.nextLink': r['@odata.nextLink'] }
   }
-  const order = folder === 'drafts' || folder === 'sentitems' ? 'sentDateTime desc' : 'receivedDateTime desc'
+  const order = folder === 'sentitems' ? 'sentDateTime desc' : 'receivedDateTime desc'
   return withVerb<{ value: MessageSummary[]; '@odata.nextLink'?: string }>(
     `${root(mb)}/mailFolders/${folder}/messages?$top=40&$orderby=${encodeURIComponent(order)}&$select=${SUMMARY_FIELDS}`,
   )
@@ -120,13 +131,16 @@ export const getMessage = (mb: Mailbox, id: string, opts: { scheduled?: boolean 
   return graph<Message>(`${url}&${EXPAND_DEFERRED}`).catch(() => graph<Message>(url))
 }
 
-/** Geplante Mail doch nicht senden: zurueck in die Entwuerfe. Der Sendezeitpunkt wird auf die Vergangenheit
- *  gesetzt, damit ein spaeteres Senden aus dem Entwurf sofort rausgeht statt erneut zu warten. */
+/** Geplante Mail doch nicht senden. Die Mail ist bei Exchange schon „abgeschickt“ (wartet nur), deshalb:
+ *  unversandte Kopie in die Entwuerfe legen (Sendezeitpunkt dort auf die Vergangenheit, damit sie nicht erneut
+ *  wartet), dann das wartende Original endgueltig loeschen. Nur Loeschen wuerde den Inhalt verlieren. */
 export async function unschedule(mb: Mailbox, id: string) {
-  const moved = await graph<Message>(`${root(mb)}/messages/${encodeURIComponent(id)}/move`, { method: 'POST', body: JSON.stringify({ destinationId: 'drafts' }) })
-  await graph(`${root(mb)}/messages/${encodeURIComponent(moved.id ?? id)}`, { method: 'PATCH', body: JSON.stringify({
+  const copy = await graph<Message>(`${root(mb)}/messages/${encodeURIComponent(id)}/copy`, { method: 'POST', body: JSON.stringify({ destinationId: 'drafts' }) })
+  if (!copy?.id) throw new Error('Kopie in die Entwürfe fehlgeschlagen, nichts geändert')
+  await graph(`${root(mb)}/messages/${encodeURIComponent(copy.id)}`, { method: 'PATCH', body: JSON.stringify({
     singleValueExtendedProperties: [{ id: DEFERRED, value: '1970-01-01T00:00:00Z' }],
   }) }).catch(() => {})
+  await graph(`${root(mb)}/messages/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
 /** Eigene Antworten/Weiterleitungen in derselben Unterhaltung (Gesendet), neueste zuerst. Fallback, falls

@@ -112,7 +112,7 @@ export function MailPage() {
 
   const open = (it: Item) => navigate(`/mail/${mailbox}/${folder}/${routeId(it, all)}`)
   const back = () => navigate(`/mail/${mailbox}/${folder}`)
-  const refresh = () => { qc.invalidateQueries({ queryKey: ['messages'] }); qc.invalidateQueries({ queryKey: ['folder'] }) }
+  const refresh = () => { qc.invalidateQueries({ queryKey: ['messages'] }); qc.invalidateQueries({ queryKey: ['folder'] }); qc.invalidateQueries({ queryKey: ['scheduled-count'] }) }
 
   const act = async (fn: () => Promise<unknown>, ok: string, leave = true) => {
     try { await fn(); toast.success(ok); refresh(); if (leave) back() }
@@ -271,7 +271,7 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
   useEffect(() => { setTranslation(null); setTranslating(null) }, [mb.id, id])
   const bar = useLiquidGlass()
   const scheduledView = folder === SCHEDULED_FOLDER
-  const msg = useQuery({ queryKey: ['message', mb.id, id, scheduledView], queryFn: () => getMessage(mb, id, { scheduled: scheduledView }) })
+  const msg = useQuery({ queryKey: ['message', mb.id, id, scheduledView], queryFn: () => getMessage(mb, id, { scheduled: scheduledView }), retry: scheduledView ? 0 : 1 })
   const atts = useQuery({ queryKey: ['atts', mb.id, id], queryFn: () => listAttachments(mb, id), enabled: !!msg.data?.hasAttachments })
   const nav = useNavigate()
   // Eigene Antworten in dieser Unterhaltung, die nach dieser Mail rausgingen.
@@ -373,7 +373,7 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
               <span className="min-w-0 flex-1 truncate">
                 {planned
                   ? <>Wird am <b className="font-semibold">{format(planned, "EEE, d. MMM 'um' HH:mm", { locale: de })}</b> gesendet</>
-                  : 'Liegt im Postausgang und wird vom Server gesendet'}
+                  : 'Wartet bei Exchange und wird vom Server gesendet'}
               </span>
             </div>
           )}

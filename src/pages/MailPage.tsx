@@ -5,9 +5,9 @@ import { format, isToday, isThisYear, isYesterday } from 'date-fns'
 import { de } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { motion } from 'motion/react'
-import { Archive, ArrowLeft, Menu, FileDown, Forward, Image, Languages, Mail, MailOpen, Paperclip, PenSquare, Reply, ReplyAll, Search, Sparkles, Trash2, X } from 'lucide-react'
+import { Archive, ArrowLeft, Clock, Menu, FileDown, Forward, Image, Languages, Mail, MailOpen, Paperclip, PenSquare, Reply, ReplyAll, Search, Sparkles, Trash2, Undo2, X } from 'lucide-react'
 import { FOLDERS, INBOX_BOXES, PRIMARY_MAILBOX, mailboxById, type Mailbox } from '@/config/mailboxes'
-import { attachmentBlob, getMessage, lastVerb, sentInConversation, inlineImages, listAttachments, listMessages, moveMessage, updateMessage, type MessageSummary } from '@/lib/graph'
+import { attachmentBlob, getMessage, lastVerb, scheduledFor, SCHEDULED_FOLDER, sentInConversation, inlineImages, listAttachments, listMessages, moveMessage, unschedule, updateMessage, type MessageSummary } from '@/lib/graph'
 import { HtmlFrame } from '@/components/mail/HtmlFrame'
 import { Compose, type ComposeMode } from '@/components/mail/Compose'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -19,7 +19,7 @@ import { APRIL_BOXES } from '@/lib/april-context'
 import { AprilCard } from '@/components/april/AprilCard'
 
 /** In diesen Ordnern schlägt April nichts vor. */
-const APRIL_SKIP_FOLDERS = new Set(['sentitems', 'drafts', 'junkemail', 'deleteditems'])
+const APRIL_SKIP_FOLDERS = new Set(['sentitems', 'drafts', SCHEDULED_FOLDER, 'junkemail', 'deleteditems'])
 
 /** Lesbarer Text einer Mail für April: Zeilenumbrüche aus dem HTML erhalten, Stile und Skripte weg. */
 function mailText(subject: string, html: string): string {
@@ -42,6 +42,8 @@ const parseRouteId = (raw: string, all: boolean, fallback?: Mailbox) => {
   return { mb: mailboxById(v.slice(0, i)), id: v.slice(i + 1) }
 }
 
+/** Geplante Mails: Sendezeitpunkt statt Eingangszeit, immer mit Uhrzeit. */
+const whenScheduled = (d: Date) => isToday(d) ? `Heute ${format(d, 'HH:mm')}` : format(d, 'EEE d. MMM HH:mm', { locale: de })
 const when = (iso?: string) => {
   if (!iso) return ''
   const d = new Date(iso)
@@ -80,7 +82,8 @@ export function MailPage() {
   const scroller = useRef<HTMLDivElement>(null)
   const headerGlass = useLiquidGlass({ radius: 20 })
   const folderLabel = all ? 'Alle Posteingänge' : FOLDERS.find(f => f.id === folder)?.label ?? folder
-  const sentView = folder === 'sentitems' || folder === 'drafts'
+  const scheduledView = folder === SCHEDULED_FOLDER
+  const sentView = folder === 'sentitems' || folder === 'drafts' || scheduledView
 
   useEffect(() => { setSearch(''); setQuery(''); scroller.current?.scrollTo({ top: 0 }) }, [mailbox, folder])
 
@@ -171,14 +174,16 @@ export function MailPage() {
           {list.isError && <p className="p-4 text-sm text-destructive">{(list.error as Error).message}</p>}
           {!list.isLoading && items.length === 0 && (
             <div className="flex flex-col items-center gap-2 py-20 text-center text-sm text-body">
-              <Mail className="h-6 w-6 text-light-steel" />{query ? 'Nichts gefunden.' : 'Alles erledigt. Keine Nachrichten.'}
+              {scheduledView ? <Clock className="h-6 w-6 text-light-steel" /> : <Mail className="h-6 w-6 text-light-steel" />}
+              {query ? 'Nichts gefunden.' : scheduledView ? 'Keine geplanten Mails. Im Schreibfenster über den Pfeil neben „Senden“ planen.' : 'Alles erledigt. Keine Nachrichten.'}
             </div>
           )}
           {items.map((it, i) => (
             <Row key={it.mb.id + it.m.id} it={it} index={i} all={all} sentView={sentView} active={it.m.id === current?.id}
               onOpen={() => open(it)}
-              onArchive={folder !== 'archive' ? () => act(() => moveMessage(it.mb, it.m.id, 'archive'), 'Archiviert', it.m.id === current?.id) : undefined}
-              onDelete={folder !== 'deleteditems' ? () => act(() => moveMessage(it.mb, it.m.id, 'deleteditems'), 'In den Papierkorb verschoben', it.m.id === current?.id) : undefined}
+              onArchive={folder !== 'archive' && !scheduledView ? () => act(() => moveMessage(it.mb, it.m.id, 'archive'), 'Archiviert', it.m.id === current?.id) : undefined}
+              onDelete={folder !== 'deleteditems' && !scheduledView ? () => act(() => moveMessage(it.mb, it.m.id, 'deleteditems'), 'In den Papierkorb verschoben', it.m.id === current?.id) : undefined}
+              onUnschedule={scheduledView ? () => act(() => unschedule(it.mb, it.m.id), 'Zurück in die Entwürfe', it.m.id === current?.id) : undefined}
               onToggleRead={() => act(() => updateMessage(it.mb, it.m.id, { isRead: !it.m.isRead }), it.m.isRead ? 'Als ungelesen markiert' : 'Als gelesen markiert', false)} />
           ))}
           {list.hasNextPage && (
@@ -207,14 +212,15 @@ export function MailPage() {
   )
 }
 
-function Row({ it, index, all, sentView, active, onOpen, onArchive, onDelete, onToggleRead }: {
+function Row({ it, index, all, sentView, active, onOpen, onArchive, onDelete, onToggleRead, onUnschedule }: {
   it: Item; index: number; all: boolean; sentView: boolean; active: boolean
-  onOpen: () => void; onArchive?: () => void; onDelete?: () => void; onToggleRead: () => void
+  onOpen: () => void; onArchive?: () => void; onDelete?: () => void; onToggleRead: () => void; onUnschedule?: () => void
 }) {
   const { m, mb } = it
   const unread = !m.isRead && !sentView
   const name = who(m, sentView)
   const verb = sentView ? null : lastVerb(m)
+  const planned = onUnschedule ? scheduledFor(m) : null
   // Schnellaktion: dezentes Symbol direkt in der Zeile, kein eigener Kasten (Aleksa 29.09.)
   const quick = (fn?: () => void) => (e: MouseEvent) => { e.stopPropagation(); fn?.() }
   const icon = 'inline-flex h-6 w-6 items-center justify-center rounded-full text-steel/80 hover:text-ink hover:bg-white/50 transition-colors [&_svg]:h-[14px] [&_svg]:w-[14px]'
@@ -233,9 +239,12 @@ function Row({ it, index, all, sentView, active, onOpen, onArchive, onDelete, on
             ? <Forward className="h-3 w-3 shrink-0 text-steel/80" aria-label="Weitergeleitet" />
             : <Reply className="h-3 w-3 shrink-0 text-steel/80" aria-label="Beantwortet" />)}
           {m.hasAttachments && <Paperclip className="h-3 w-3 shrink-0 text-steel/80" />}
-          <span className={`ml-auto shrink-0 text-[11px] tabular-nums transition-opacity group-hover:hidden [@media(hover:none)]:!inline ${unread ? 'font-semibold text-indigo2-700' : 'text-steel'}`}>{when(m.receivedDateTime || m.sentDateTime)}</span>
+          <span className={`ml-auto inline-flex shrink-0 items-center gap-1 text-[11px] tabular-nums transition-opacity group-hover:hidden [@media(hover:none)]:!inline-flex ${unread ? 'font-semibold text-indigo2-700' : planned ? 'text-indigo2-700' : 'text-steel'}`}>
+            {planned && <Clock className="h-3 w-3" />}{planned ? whenScheduled(planned) : onUnschedule ? 'Geplant' : when(m.receivedDateTime || m.sentDateTime)}
+          </span>
           <span className="ml-auto hidden shrink-0 items-center group-hover:flex [@media(hover:none)]:!hidden">
-            <button className={icon} title={m.isRead ? 'Als ungelesen markieren' : 'Als gelesen markieren'} onClick={quick(onToggleRead)}><MailOpen /></button>
+            {onUnschedule && <button className={icon} title="Doch nicht senden, zurück in die Entwürfe" onClick={quick(onUnschedule)}><Undo2 /></button>}
+            {!onUnschedule && <button className={icon} title={m.isRead ? 'Als ungelesen markieren' : 'Als gelesen markieren'} onClick={quick(onToggleRead)}><MailOpen /></button>}
             {onArchive && <button className={icon} title="Archivieren" onClick={quick(onArchive)}><Archive /></button>}
             {onDelete && <button className={`${icon} hover:!text-destructive`} title="Löschen" onClick={quick(onDelete)}><Trash2 /></button>}
           </span>
@@ -261,20 +270,21 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
   const [translating, setTranslating] = useState<LanguageId | null>(null)
   useEffect(() => { setTranslation(null); setTranslating(null) }, [mb.id, id])
   const bar = useLiquidGlass()
-  const msg = useQuery({ queryKey: ['message', mb.id, id], queryFn: () => getMessage(mb, id) })
+  const scheduledView = folder === SCHEDULED_FOLDER
+  const msg = useQuery({ queryKey: ['message', mb.id, id, scheduledView], queryFn: () => getMessage(mb, id, { scheduled: scheduledView }) })
   const atts = useQuery({ queryKey: ['atts', mb.id, id], queryFn: () => listAttachments(mb, id), enabled: !!msg.data?.hasAttachments })
   const nav = useNavigate()
   // Eigene Antworten in dieser Unterhaltung, die nach dieser Mail rausgingen.
   const replies = useQuery({
     queryKey: ['replies', mb.id, msg.data?.conversationId],
     queryFn: () => sentInConversation(mb, msg.data!.conversationId),
-    enabled: !!msg.data?.conversationId && folder !== 'sentitems' && folder !== 'drafts',
+    enabled: !!msg.data?.conversationId && folder !== 'sentitems' && folder !== 'drafts' && !scheduledView,
     staleTime: 60_000,
   })
   const inline = useQuery({ queryKey: ['inline', mb.id, id], queryFn: () => inlineImages(mb, id), enabled: !!msg.data && /cid:/i.test(msg.data.body.content) })
 
   useEffect(() => {
-    if (msg.data && !msg.data.isRead) updateMessage(mb, id, { isRead: true }).then(() => {
+    if (msg.data && !msg.data.isRead && !scheduledView) updateMessage(mb, id, { isRead: true }).then(() => {
       qc.invalidateQueries({ queryKey: ['messages'] }); qc.invalidateQueries({ queryKey: ['folder', mb.id] })
     }).catch(() => {})
   }, [msg.data?.id])
@@ -291,7 +301,8 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
   if (msg.isLoading) return <div className="space-y-3 p-8 pt-24"><Skeleton className="h-6 w-2/3 bg-white/60" /><Skeleton className="h-3 w-1/3 bg-white/60" /><Skeleton className="h-64 w-full rounded-[18px] bg-white/60" /></div>
   if (msg.isError || !msg.data) return <p className="p-6 text-sm text-destructive">{(msg.error as Error)?.message ?? 'Nicht gefunden'}</p>
   const m = msg.data
-  const canSend = mb.from.length > 0
+  const canSend = mb.from.length > 0 && !scheduledView
+  const planned = scheduledView ? scheduledFor(m) : null
   const hasRemote = /<img[^>]+src=["']https?:/i.test(m.body.content)
   const html = m.body.contentType === 'html' ? m.body.content : `<pre>${m.body.content.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</pre>`
   const btn = 'inline-flex h-8 w-8 items-center justify-center rounded-full text-asphalt/70 hover:bg-white/80 hover:text-ink transition-colors disabled:opacity-40'
@@ -299,7 +310,7 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
   const received = new Date(m.receivedDateTime || 0).getTime()
   const mine = (replies.data ?? []).filter(r => r.id !== m.id && new Date(r.sentDateTime ?? 0).getTime() > received)
   const verb = lastVerb(m)
-  const answered = folder !== 'sentitems' && folder !== 'drafts' && (mine.length > 0 || !!verb)
+  const answered = folder !== 'sentitems' && folder !== 'drafts' && !scheduledView && (mine.length > 0 || !!verb)
   const latest = mine[0]
 
   const translate = async (lang: LanguageId) => {
@@ -323,9 +334,16 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
             <button className={btn} title="Weiterleiten" onClick={() => onCompose({ kind: 'forward', message: m })}><Forward className="h-4 w-4" /></button>
             <span className="mx-1 h-5 w-px bg-asphalt/10" />
           </>}
-          {folder !== 'archive' && <button className={btn} title="Archivieren" onClick={() => onAct(() => moveMessage(mb, id, 'archive'), 'Archiviert')}><Archive className="h-4 w-4" /></button>}
-          {folder !== 'deleteditems' && <button className={`${btn} hover:!text-destructive`} title="Löschen" onClick={() => onAct(() => moveMessage(mb, id, 'deleteditems'), 'In den Papierkorb verschoben')}><Trash2 className="h-4 w-4" /></button>}
-          <button className={btn} title="Als ungelesen markieren" onClick={() => onAct(() => updateMessage(mb, id, { isRead: false }), 'Als ungelesen markiert')}><MailOpen className="h-4 w-4" /></button>
+          {scheduledView ? (
+            <button onClick={() => onAct(() => unschedule(mb, id), 'Zurück in die Entwürfe')}
+              className="inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12.5px] font-medium text-asphalt/80 hover:bg-white/80 hover:text-ink transition-colors">
+              <Undo2 className="h-4 w-4" />Doch nicht senden
+            </button>
+          ) : <>
+            {folder !== 'archive' && <button className={btn} title="Archivieren" onClick={() => onAct(() => moveMessage(mb, id, 'archive'), 'Archiviert')}><Archive className="h-4 w-4" /></button>}
+            {folder !== 'deleteditems' && <button className={`${btn} hover:!text-destructive`} title="Löschen" onClick={() => onAct(() => moveMessage(mb, id, 'deleteditems'), 'In den Papierkorb verschoben')}><Trash2 className="h-4 w-4" /></button>}
+            <button className={btn} title="Als ungelesen markieren" onClick={() => onAct(() => updateMessage(mb, id, { isRead: false }), 'Als ungelesen markiert')}><MailOpen className="h-4 w-4" /></button>
+          </>}
           <span className="mx-1 h-5 w-px bg-asphalt/10" />
           <button className={btn} title="Von April ins Deutsche übersetzen lassen" disabled={!!translating}
             onClick={() => void translate(translation?.lang ?? 'de')}><Languages className="h-4 w-4" /></button>
@@ -349,6 +367,16 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
               {showBox && <p className="mt-0.5 inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: mb.color }} />{mb.label}</p>}
             </div>
           </div>
+          {scheduledView && (
+            <div className="row-glass lg-selected mt-4 flex items-center gap-2.5 rounded-[14px] px-3 py-2 text-[12.5px] text-asphalt">
+              <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo2-100 text-indigo2-700"><Clock className="h-3.5 w-3.5" /></span>
+              <span className="min-w-0 flex-1 truncate">
+                {planned
+                  ? <>Wird am <b className="font-semibold">{format(planned, "EEE, d. MMM 'um' HH:mm", { locale: de })}</b> gesendet</>
+                  : 'Liegt im Postausgang und wird vom Server gesendet'}
+              </span>
+            </div>
+          )}
           {answered && (
             <button onClick={() => latest && nav(`/mail/${mb.id}/sentitems/${encodeURIComponent(latest.id)}`)} disabled={!latest}
               className="row-glass lg-selected mt-4 flex w-full items-center gap-2.5 rounded-[14px] px-3 py-2 text-left text-[12.5px] text-asphalt enabled:hover:-translate-y-px transition-transform">

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { Mailbox } from '@/config/mailboxes'
 import { signatureFor } from '@/config/signatures'
 import { MAX_ATTACHMENT, sendNew, sendResponse, type Message } from '@/lib/graph'
+import { ScheduleChip, SchedulePicker, whenLabel } from './SchedulePicker'
 
 /** `startHtml`: Starttext im Editor, z. B. Aprils Entwurf (Signatur und Zitat kommen wie gewohnt dazu). */
 export type ComposeMode = { kind: 'new' } | { kind: 'reply' | 'replyAll' | 'forward'; message: Message; startHtml?: string }
@@ -38,6 +39,7 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
   const [target, setTarget] = useState<LanguageId>('en')
   const [aprilBusy, setAprilBusy] = useState<'' | 'improve' | 'translate'>('')
   const [before, setBefore] = useState<string | null>(null)
+  const [sendAt, setSendAt] = useState<Date | null>(null)
   const signature = signatureFor(from)
 
   // April schreibt den Entwurf neu; der Editor wird mit dem Ergebnis neu aufgebaut.
@@ -81,6 +83,7 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
     setEditorKey(k => k + 1)
     setFiles([])
     setWithSig(true)
+    setSendAt(null)
     if (mode.kind === 'new') { setTo(''); setCc(''); setSubject(''); setFrom(mb.from[0] ?? ''); return }
     const m = mode.message
     const own = new Set(mb.from.map(a => a.toLowerCase()))
@@ -104,13 +107,14 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
     if (!to.trim()) { toast.error('Empfänger fehlt'); return }
     const left = (new DOMParser().parseFromString(html, 'text/html').body.textContent ?? '').match(PLACEHOLDER)
     if (left?.length && !window.confirm(`Im Text steht noch ${left.length === 1 ? 'ein Platzhalter' : `${left.length} Platzhalter`}: ${left.join(', ')}. Trotzdem senden?`)) return
+    if (sendAt && sendAt.getTime() < Date.now() + 60_000) { toast.error('Der geplante Zeitpunkt liegt schon in der Vergangenheit'); return }
     setSending(true)
     try {
       const body = hasContent(html) ? toEmailHtml(html) : ''
-      const d = { from, to, cc, subject, html: signature && withSig ? `${body}<br>${signature}` : body, files }
+      const d = { from, to, cc, subject, html: signature && withSig ? `${body}<br>${signature}` : body, files, sendAt }
       if (mode.kind === 'new') await sendNew(mb, d)
       else await sendResponse(mb, mode.message.id, mode.kind, d)
-      toast.success('Gesendet')
+      toast.success(sendAt ? `Geplant für ${whenLabel(sendAt)}` : 'Gesendet')
       onSent(); onClose()
     } catch (e) {
       toast.error(`Senden fehlgeschlagen: ${(e as Error).message}`)
@@ -189,11 +193,17 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
         <div className="flex justify-between items-center pt-2">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={() => picker.current?.click()}><Paperclip className="w-4 h-4 mr-1.5" />Anhang</Button>
-            <span className="hidden sm:inline text-[11px] text-steel">Dateien hierher ziehen · ⌘ + Enter sendet</span>
+            {!sendAt && <span className="hidden sm:inline text-[11px] text-steel">Dateien hierher ziehen · ⌘ + Enter sendet</span>}
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {sendAt && <ScheduleChip value={sendAt} onClear={() => setSendAt(null)} disabled={sending} />}
             <Button variant="outline" onClick={onClose}>Abbrechen</Button>
-            <Button onClick={send} disabled={sending}>{sending ? (files.length ? 'Lädt Anhänge …' : 'Sendet …') : 'Senden'}</Button>
+            <div className="flex items-center gap-1">
+              <Button onClick={send} disabled={sending} className={sendAt ? 'rounded-r-md' : ''}>
+                {sending ? (files.length ? 'Lädt Anhänge …' : sendAt ? 'Plant …' : 'Sendet …') : sendAt ? 'Planen' : 'Senden'}
+              </Button>
+              <SchedulePicker onChange={setSendAt} disabled={sending} />
+            </div>
           </div>
         </div>
       </DialogContent>

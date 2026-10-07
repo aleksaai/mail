@@ -79,6 +79,7 @@ export const mailboxById = (id?: string) => MAILBOXES.find(m => m.id === id)
 export const FOLDERS = [
   { id: 'inbox', label: 'Posteingang' },
   { id: 'drafts', label: 'Entwürfe' },
+  { id: 'outbox', label: 'Geplant' },
   { id: 'sentitems', label: 'Gesendet' },
   { id: 'archive', label: 'Archiv' },
   { id: 'junkemail', label: 'Junk' },

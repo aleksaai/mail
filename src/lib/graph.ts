@@ -64,6 +64,23 @@ async function withVerb<T>(url: string): Promise<T> {
   try { return await graph<T>(`${url}&${EXPAND_VERB}`) }
   catch (e) { if (/expand|extended|filter|Invalid/i.test((e as Error).message)) return graph<T>(url); throw e }
 }
+/**
+ * "Senden planen": Exchange haelt eine abgeschickte Mail bis zu diesem Zeitpunkt im Postausgang zurueck
+ * (PidTagDeferredSendTime 0x3FEF). Outlook nutzt dieselbe Eigenschaft, der Versand passiert auf dem Server —
+ * die App muss dafuer nicht offen sein.
+ */
+export const DEFERRED = 'SystemTime 0x3FEF'
+const EXPAND_DEFERRED = `$expand=${encodeURIComponent(`singleValueExtendedProperties($filter=id eq '${DEFERRED}')`)}`
+/** Geplanter Sendezeitpunkt einer Mail im Postausgang, sonst null. */
+export function scheduledFor(m: MessageSummary): Date | null {
+  const v = (m.singleValueExtendedProperties ?? []).find(p => p.id.toLowerCase() === DEFERRED.toLowerCase())?.value
+  if (!v) return null
+  const d = new Date(v)
+  return isNaN(d.getTime()) ? null : d
+}
+/** Ordner der geplanten Mails (Graph-Name des Postausgangs). */
+export const SCHEDULED_FOLDER = 'outbox'
+
 export type Verb = 'reply' | 'replyAll' | 'forward'
 export function lastVerb(m: MessageSummary): { kind: Verb } | null {
   const props = m.singleValueExtendedProperties ?? []
@@ -85,14 +102,32 @@ export async function listMessages(mb: Mailbox, folder: string, opts: { next?: s
     const q = encodeURIComponent(`"${opts.search.replace(/"/g, '')}"`)
     return graph<{ value: MessageSummary[]; '@odata.nextLink'?: string }>(`${root(mb)}/messages?$search=${q}&$top=40&$select=${SUMMARY_FIELDS}`)
   }
+  if (folder === SCHEDULED_FOLDER) {
+    // Postausgang: nur geplante Mails, mit ihrem Sendezeitpunkt; ohne $expand, falls Graph ihn ablehnt.
+    const url = `${root(mb)}/mailFolders/${folder}/messages?$top=40&$select=${SUMMARY_FIELDS}`
+    try { return await graph<{ value: MessageSummary[]; '@odata.nextLink'?: string }>(`${url}&${EXPAND_DEFERRED}`) }
+    catch { return graph<{ value: MessageSummary[]; '@odata.nextLink'?: string }>(url) }
+  }
   const order = folder === 'drafts' || folder === 'sentitems' ? 'sentDateTime desc' : 'receivedDateTime desc'
   return withVerb<{ value: MessageSummary[]; '@odata.nextLink'?: string }>(
     `${root(mb)}/mailFolders/${folder}/messages?$top=40&$orderby=${encodeURIComponent(order)}&$select=${SUMMARY_FIELDS}`,
   )
 }
 
-export const getMessage = (mb: Mailbox, id: string) =>
-  withVerb<Message>(`${root(mb)}/messages/${encodeURIComponent(id)}?$select=${SUMMARY_FIELDS},body,ccRecipients,replyTo,webLink`)
+export const getMessage = (mb: Mailbox, id: string, opts: { scheduled?: boolean } = {}) => {
+  const url = `${root(mb)}/messages/${encodeURIComponent(id)}?$select=${SUMMARY_FIELDS},body,ccRecipients,replyTo,webLink`
+  if (!opts.scheduled) return withVerb<Message>(url)
+  return graph<Message>(`${url}&${EXPAND_DEFERRED}`).catch(() => graph<Message>(url))
+}
+
+/** Geplante Mail doch nicht senden: zurueck in die Entwuerfe. Der Sendezeitpunkt wird auf die Vergangenheit
+ *  gesetzt, damit ein spaeteres Senden aus dem Entwurf sofort rausgeht statt erneut zu warten. */
+export async function unschedule(mb: Mailbox, id: string) {
+  const moved = await graph<Message>(`${root(mb)}/messages/${encodeURIComponent(id)}/move`, { method: 'POST', body: JSON.stringify({ destinationId: 'drafts' }) })
+  await graph(`${root(mb)}/messages/${encodeURIComponent(moved.id ?? id)}`, { method: 'PATCH', body: JSON.stringify({
+    singleValueExtendedProperties: [{ id: DEFERRED, value: '1970-01-01T00:00:00Z' }],
+  }) }).catch(() => {})
+}
 
 /** Eigene Antworten/Weiterleitungen in derselben Unterhaltung (Gesendet), neueste zuerst. Fallback, falls
  *  die Outlook-Markierung fehlt (z.B. Antwort vom Handy oder aus einem anderen Programm). */
@@ -130,7 +165,8 @@ export const moveMessage = (mb: Mailbox, id: string, destinationId: string) =>
 const recipients = (list: string) =>
   list.split(/[,;]/).map(s => s.trim()).filter(Boolean).map(address => ({ emailAddress: { address } }))
 
-export interface Draft { from: string; to: string; cc: string; subject: string; html: string; files?: File[] }
+/** `sendAt`: Mail erst zu diesem Zeitpunkt senden (Exchange haelt sie im Postausgang zurueck). */
+export interface Draft { from: string; to: string; cc: string; subject: string; html: string; files?: File[]; sendAt?: Date | null }
 
 /** Grenze fuer den direkten Upload; darueber Upload-Sitzung in Stuecken (Graph erlaubt bis 150 MB je Anhang). */
 const SMALL = 3 * 1024 * 1024
@@ -172,6 +208,11 @@ const fields = (mb: Mailbox, d: Draft) => ({
 
 async function finish(mb: Mailbox, draftId: string, d: Draft) {
   for (const f of d.files ?? []) await attach(mb, draftId, f)
+  if (d.sendAt && d.sendAt.getTime() > Date.now() + 30_000) {
+    await graph(`${root(mb)}/messages/${encodeURIComponent(draftId)}`, { method: 'PATCH', body: JSON.stringify({
+      singleValueExtendedProperties: [{ id: DEFERRED, value: d.sendAt.toISOString() }],
+    }) })
+  }
   await graph(`${root(mb)}/messages/${encodeURIComponent(draftId)}/send`, { method: 'POST', body: '{}' })
 }
 

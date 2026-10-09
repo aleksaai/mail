@@ -113,6 +113,7 @@ Kurzfassung (Details in den Nachträgen „2026-09-29“ weiter unten): Mail als
 - Geprüft: `npm run build`, ESLint der neuen Module, `node tests/recipients.mjs`, Chrome mit Graph-Testdaten (Tastatur, Maus, mehrere Empfänger, Ausschluss An/Cc, Escape, Ausfall, 390px mobile Ansicht). Keine Mail gesendet. Echter Graph-Suchtest mit Aleksas Login noch offen.
 
 ### 09.10. — Ausgewählte Empfänger als Tags
+- Live-Deploy von `4007e06` auf `https://mail.aleksa.ai` verifiziert: ausgeliefertes Bundle `index-BGjEvN16.js` enthält die Tag-Oberfläche. Echter Graph-Suchtest mit Aleksas Login bleibt separat offen.
 - An/Cc zeigen bestätigte Empfänger als einzelne Tags mit Häkchen, Name (falls ausgewählt), stets sichtbarer Adresse und Entfernen-Knopf. Separates Feld „Weitere Empfänger …“; Tags umbrechen, Schreibdialog bei geringer Höhe scrollbar.
 - Manuelle Adressen werden per Enter/Tab/Blur bestätigt, mehrere per Komma/Semikolon/Zeilenumbruch oder `Name <adresse>` einfügbar. Unvollständige Eingaben bleiben sichtbar und blockieren Senden; bereits gesetzte Reply-Empfänger erscheinen ebenfalls als Tags.
 - Build/Lint/Matching-Tests grün; Chrome-Fixtures für Mehrfachauswahl, Entfernen, manuelle Eingabe, Einfügen, Duplikate, Cc, Escape, mobile Ansicht und Sende-Sperre geprüft. Keine Mail gesendet.

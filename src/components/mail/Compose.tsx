@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MailEditor } from './MailEditor'
+import { RecipientInput } from './RecipientInput'
 import { hasContent, toEmailHtml } from '@/lib/email-html'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { Mailbox } from '@/config/mailboxes'
@@ -125,6 +126,7 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
   return (
     <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
       <DialogContent className={`sm:max-w-2xl sm:rounded-[24px] !bg-white/80 backdrop-blur-2xl backdrop-saturate-150 border-white/70 shadow-[0_1px_0_rgba(255,255,255,.9)_inset,0_30px_80px_-20px_rgba(15,40,77,.35)] ${dragging ? 'ring-2 ring-primary' : ''}`}
+        onEscapeKeyDown={e => { if (document.activeElement?.getAttribute('aria-expanded') === 'true') e.preventDefault() }}
         onOpenAutoFocus={e => { e.preventDefault(); if (mode.kind === 'new') setTimeout(() => document.getElementById('compose-to')?.focus(), 0) }}
         onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDragging(true) } }}
         onDragLeave={e => { if (e.currentTarget === e.target) setDragging(false) }}
@@ -138,8 +140,8 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
               <SelectContent>{mb.from.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="flex items-center gap-2"><span className="w-12 text-sm text-steel">An</span><Input id="compose-to" value={to} onChange={e => setTo(e.target.value)} placeholder="name@firma.de, …" /></div>
-          <div className="flex items-center gap-2"><span className="w-12 text-sm text-steel">Cc</span><Input value={cc} onChange={e => setCc(e.target.value)} /></div>
+          <div className="flex items-center gap-2"><label htmlFor="compose-to" className="w-12 text-sm text-steel">An</label><RecipientInput id="compose-to" label="An" value={to} onChange={setTo} exclude={cc} /></div>
+          <div className="flex items-center gap-2"><label htmlFor="compose-cc" className="w-12 text-sm text-steel">Cc</label><RecipientInput id="compose-cc" label="Cc" value={cc} onChange={setCc} exclude={to} /></div>
           <div className="flex items-center gap-2"><span className="w-12 text-sm text-steel">Betreff</span><Input value={subject} onChange={e => setSubject(e.target.value)} /></div>
           <div className="mt-2">
             <MailEditor key={editorKey} initialHtml={initial} onChange={setHtml} onSubmit={() => void send()} autoFocus={mode.kind !== 'new' || !!initial}

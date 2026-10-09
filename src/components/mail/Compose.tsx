@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MailEditor } from './MailEditor'
 import { RecipientInput } from './RecipientInput'
+import { parseRecipient } from '@/lib/recipients'
 import { hasContent, toEmailHtml } from '@/lib/email-html'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { Mailbox } from '@/config/mailboxes'
@@ -106,6 +107,7 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
 
   const send = async () => {
     if (!to.trim()) { toast.error('Empfänger fehlt'); return }
+    if ([to, cc].flatMap(s => s.split(/[,;]/)).some(s => s.trim() && !parseRecipient(s))) { toast.error('Bitte wähle einen Empfänger aus oder ergänze die vollständige E-Mail-Adresse.'); return }
     const left = (new DOMParser().parseFromString(html, 'text/html').body.textContent ?? '').match(PLACEHOLDER)
     if (left?.length && !window.confirm(`Im Text steht noch ${left.length === 1 ? 'ein Platzhalter' : `${left.length} Platzhalter`}: ${left.join(', ')}. Trotzdem senden?`)) return
     if (sendAt && sendAt.getTime() < Date.now() + 60_000) { toast.error('Der geplante Zeitpunkt liegt schon in der Vergangenheit'); return }
@@ -125,7 +127,7 @@ export function Compose({ mb, mode, open, onClose, onSent }: { mb: Mailbox; mode
   const title = mode.kind === 'new' ? 'Neue Mail' : mode.kind === 'forward' ? 'Weiterleiten' : 'Antworten'
   return (
     <Dialog open={open} onOpenChange={o => { if (!o) onClose() }}>
-      <DialogContent className={`sm:max-w-2xl sm:rounded-[24px] !bg-white/80 backdrop-blur-2xl backdrop-saturate-150 border-white/70 shadow-[0_1px_0_rgba(255,255,255,.9)_inset,0_30px_80px_-20px_rgba(15,40,77,.35)] ${dragging ? 'ring-2 ring-primary' : ''}`}
+      <DialogContent className={`sm:max-w-2xl max-h-[calc(100dvh-2rem)] overflow-y-auto sm:rounded-[24px] !bg-white/80 backdrop-blur-2xl backdrop-saturate-150 border-white/70 shadow-[0_1px_0_rgba(255,255,255,.9)_inset,0_30px_80px_-20px_rgba(15,40,77,.35)] ${dragging ? 'ring-2 ring-primary' : ''}`}
         onEscapeKeyDown={e => { if (document.activeElement?.getAttribute('aria-expanded') === 'true') e.preventDefault() }}
         onOpenAutoFocus={e => { e.preventDefault(); if (mode.kind === 'new') setTimeout(() => document.getElementById('compose-to')?.focus(), 0) }}
         onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setDragging(true) } }}

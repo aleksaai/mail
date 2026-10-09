@@ -7,6 +7,14 @@ export type RecipientMessage = {
   ccRecipients?: { emailAddress: Address }[]
 }
 
+/** Accept a typed address or a pasted Outlook-style Name <address>. */
+export function parseRecipient(text: string): Address | null {
+  const match = text.trim().match(/^(.*?)<([^<>]+)>$/)
+  const address = (match?.[2] ?? text).trim().toLowerCase()
+  if (!/^[^\s,;<>@]+@[^\s,;<>@]+\.[^\s,;<>@]+$/.test(address)) return null
+  return { address, ...(match?.[1].trim() ? { name: match[1].trim().replace(/^"|"$/g, '') } : {}) }
+}
+
 /** Work on the token under the caret, preserving the other recipients. */
 export function recipientToken(value: string, caret: number) {
   const start = Math.max(value.lastIndexOf(',', caret - 1), value.lastIndexOf(';', caret - 1)) + 1

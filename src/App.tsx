@@ -1,3 +1,5 @@
+import AgentWorkspace from './pages/AgentWorkspace'
+import {hasAgentSession} from './lib/agent-access'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { PRIMARY_MAILBOX } from '@/config/mailboxes'
 import { useMsal } from '@azure/msal-react'
@@ -11,6 +13,7 @@ import { Shell } from './components/Shell'
 export default function App() {
   const { accounts } = useMsal()
   const account = accounts[0]
+  if (location.pathname.startsWith('/agent') || hasAgentSession('mail')) return <AgentWorkspace />
   if (!account || !isAllowed(account)) return <><LoginPage blocked={!!account && !isAllowed(account)} /><Toaster position="bottom-right" /></>
   return (
     <>

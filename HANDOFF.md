@@ -1,5 +1,9 @@
 # HANDOFF — mail
 
+## 2026-10-11 — April in Team House
+
+Scoped `/agent` workspace live for April’s cloud browser. Existing identity/permissions, read-only app view, short-lived native sessions; actions keep their existing tool approvals. Real browser + April model verification passed. Details and recovery: [AGENT-ACCESS.md](AGENT-ACCESS.md).
+
 ### Was wurde in dieser Session gemacht (2026-10-02): April schlägt Antworten vor, Phase 1
 Spec: `docs/SPEC-april-vorschlaege.md` (freigegeben). Gateway-Teil liegt in claude-team `gateway/src/mail-vorschlag.ts` + `mail-hilfe.ts` (Aktionen `brief` per Haiku als JSON, `draft` per Sonnet als SSE, Aprils Gedächtnis gecacht), Commit 4a1f0ca, Tests `mail-vorschlag.test.ts` grün.
 - `src/lib/april-context.ts`: Mail-Text (Zitate abgeschnitten), letzte 5 Mails der Unterhaltung, letzte 3 gesendete Mails an den Absender (andere Unterhaltungen), belegte Zeiten aus beiden Kalendern der nächsten 14 Tage (ohne Titel). Jede Quelle darf einzeln ausfallen. `APRIL_BOXES` = info, aleksa, consulting.

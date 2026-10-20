@@ -1,5 +1,8 @@
 # HANDOFF — mail
 
+### Was wurde in dieser Session gemacht (2026-10-20)
+Im Archiv und im Papierkorb gibt es jetzt „In den Posteingang verschieben“ (Inbox-Symbol in der Zeile beim Hover und in der Aktionsleiste der geöffneten Mail, `moveMessage(..., 'inbox')` in `MailPage.tsx`). Build grün, mit echtem Login noch nicht angeklickt. Commit 7aff18a.
+
 ## 2026-10-11 — April in Team House
 
 Scoped `/agent` workspace live for April’s cloud browser. Existing identity/permissions, read-only app view, short-lived native sessions; actions keep their existing tool approvals. Real browser + April model verification passed. Details and recovery: [AGENT-ACCESS.md](AGENT-ACCESS.md).

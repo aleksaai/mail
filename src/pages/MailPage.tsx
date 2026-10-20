@@ -5,7 +5,7 @@ import { format, isToday, isThisYear, isYesterday } from 'date-fns'
 import { de } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { motion } from 'motion/react'
-import { Archive, ArrowLeft, Clock, Menu, FileDown, Forward, Image, Languages, Mail, MailOpen, Paperclip, PenSquare, Reply, ReplyAll, Search, Sparkles, Trash2, Undo2, X } from 'lucide-react'
+import { Archive, ArrowLeft, Clock, Menu, FileDown, Forward, Image, Inbox, Languages, Mail, MailOpen, Paperclip, PenSquare, Reply, ReplyAll, Search, Sparkles, Trash2, Undo2, X } from 'lucide-react'
 import { FOLDERS, INBOX_BOXES, PRIMARY_MAILBOX, mailboxById, type Mailbox } from '@/config/mailboxes'
 import { attachmentBlob, getMessage, lastVerb, scheduledFor, SCHEDULED_FOLDER, sentInConversation, inlineImages, listAttachments, listMessages, moveMessage, unschedule, updateMessage, type MessageSummary } from '@/lib/graph'
 import { HtmlFrame } from '@/components/mail/HtmlFrame'
@@ -182,6 +182,7 @@ export function MailPage() {
             <Row key={it.mb.id + it.m.id} it={it} index={i} all={all} sentView={sentView} active={it.m.id === current?.id}
               onOpen={() => open(it)}
               onArchive={folder !== 'archive' && !scheduledView ? () => act(() => moveMessage(it.mb, it.m.id, 'archive'), 'Archiviert', it.m.id === current?.id) : undefined}
+              onRestore={(folder === 'archive' || folder === 'deleteditems') && !scheduledView ? () => act(() => moveMessage(it.mb, it.m.id, 'inbox'), 'Zurück im Posteingang', it.m.id === current?.id) : undefined}
               onDelete={folder !== 'deleteditems' && !scheduledView ? () => act(() => moveMessage(it.mb, it.m.id, 'deleteditems'), 'In den Papierkorb verschoben', it.m.id === current?.id) : undefined}
               onUnschedule={scheduledView ? () => act(() => unschedule(it.mb, it.m.id), 'Zurück in die Entwürfe', it.m.id === current?.id) : undefined}
               onToggleRead={() => act(() => updateMessage(it.mb, it.m.id, { isRead: !it.m.isRead }), it.m.isRead ? 'Als ungelesen markiert' : 'Als gelesen markiert', false)} />
@@ -212,9 +213,9 @@ export function MailPage() {
   )
 }
 
-function Row({ it, index, all, sentView, active, onOpen, onArchive, onDelete, onToggleRead, onUnschedule }: {
+function Row({ it, index, all, sentView, active, onOpen, onArchive, onRestore, onDelete, onToggleRead, onUnschedule }: {
   it: Item; index: number; all: boolean; sentView: boolean; active: boolean
-  onOpen: () => void; onArchive?: () => void; onDelete?: () => void; onToggleRead: () => void; onUnschedule?: () => void
+  onOpen: () => void; onArchive?: () => void; onRestore?: () => void; onDelete?: () => void; onToggleRead: () => void; onUnschedule?: () => void
 }) {
   const { m, mb } = it
   const unread = !m.isRead && !sentView
@@ -246,6 +247,7 @@ function Row({ it, index, all, sentView, active, onOpen, onArchive, onDelete, on
             {onUnschedule && <button className={icon} title="Doch nicht senden, zurück in die Entwürfe" onClick={quick(onUnschedule)}><Undo2 /></button>}
             {!onUnschedule && <button className={icon} title={m.isRead ? 'Als ungelesen markieren' : 'Als gelesen markieren'} onClick={quick(onToggleRead)}><MailOpen /></button>}
             {onArchive && <button className={icon} title="Archivieren" onClick={quick(onArchive)}><Archive /></button>}
+            {onRestore && <button className={icon} title="In den Posteingang verschieben" onClick={quick(onRestore)}><Inbox /></button>}
             {onDelete && <button className={`${icon} hover:!text-destructive`} title="Löschen" onClick={quick(onDelete)}><Trash2 /></button>}
           </span>
         </span>
@@ -340,6 +342,7 @@ function Reader({ mb, folder, id, showBox, onAct, onCompose, onBack }: {
               <Undo2 className="h-4 w-4" />Doch nicht senden
             </button>
           ) : <>
+            {(folder === 'archive' || folder === 'deleteditems') && <button className={btn} title="In den Posteingang verschieben" onClick={() => onAct(() => moveMessage(mb, id, 'inbox'), 'Zurück im Posteingang')}><Inbox className="h-4 w-4" /></button>}
             {folder !== 'archive' && <button className={btn} title="Archivieren" onClick={() => onAct(() => moveMessage(mb, id, 'archive'), 'Archiviert')}><Archive className="h-4 w-4" /></button>}
             {folder !== 'deleteditems' && <button className={`${btn} hover:!text-destructive`} title="Löschen" onClick={() => onAct(() => moveMessage(mb, id, 'deleteditems'), 'In den Papierkorb verschoben')}><Trash2 className="h-4 w-4" /></button>}
             <button className={btn} title="Als ungelesen markieren" onClick={() => onAct(() => updateMessage(mb, id, { isRead: false }), 'Als ungelesen markiert')}><MailOpen className="h-4 w-4" /></button>
